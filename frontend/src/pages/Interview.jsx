@@ -690,7 +690,7 @@ const Interview = () => {
                     {isSpeaking && (
                         <span className="status-badge status-badge-speaking ml-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            AI Speaking
+                            Nexa Speaking
                         </span>
                     )}
                     {!isSpeaking && isRecording && (

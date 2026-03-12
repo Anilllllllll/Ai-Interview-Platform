@@ -61,20 +61,12 @@ const CameraPreview = ({ isActive, liveMetrics, onVideoReady, isRecording, isMod
 
     return (
         <div className="camera-preview-container" id="camera-preview">
-            {/* Glow ring */}
-            <div
-                className="camera-glow-ring"
-                style={{
-                    borderColor: confidenceColor,
-                    boxShadow: `0 0 20px ${confidenceColor}30, 0 0 40px ${confidenceColor}15, inset 0 0 20px ${confidenceColor}10`,
-                }}
-            />
 
             {/* Camera circle */}
             <div className="camera-circle">
                 <Webcam
                     ref={webcamRef}
-                    audio={false}
+                    audio={true}
                     mirrored
                     onUserMedia={handleUserMedia}
                     videoConstraints={{
@@ -102,7 +94,7 @@ const CameraPreview = ({ isActive, liveMetrics, onVideoReady, isRecording, isMod
                 {!isModelReady && (
                     <div className="camera-loading-overlay">
                         <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-[9px] text-surface-500 mt-1">Loading AI…</span>
+                        <span className="text-[9px] text-surface-500 mt-1">Loading Nexa…</span>
                     </div>
                 )}
             </div>

@@ -275,7 +275,7 @@ const VoiceAnswerInput = ({
                     {status === "idle" && disabled && (
                         <span className="status-badge status-badge-speaking">
                             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                            AI is speaking…
+                            Nexa is speaking…
                         </span>
                     )}
                     {status === "idle" && !disabled && (

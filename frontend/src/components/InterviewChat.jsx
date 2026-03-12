@@ -49,7 +49,7 @@ const InterviewChat = ({ transcript, isLoading }) => {
                             <div className="flex items-center space-x-1.5 mb-1.5">
                                 {msg.role === "assistant" ? (
                                     <>
-                                        <span className="text-[10px] font-bold text-primary-600 tracking-wider uppercase">AI Interviewer</span>
+                                        <span className="text-[10px] font-bold text-primary-600 tracking-wider uppercase">Nexa Interviewer</span>
                                         <svg className="w-3 h-3 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z" />
                                         </svg>
@@ -99,7 +99,7 @@ const InterviewChat = ({ transcript, isLoading }) => {
                                     <div className="w-2.5 h-2.5 rounded-full bg-primary-400/60 animate-bounce" style={{ animationDelay: "0.15s" }} />
                                     <div className="w-2.5 h-2.5 rounded-full bg-primary-400/60 animate-bounce" style={{ animationDelay: "0.3s" }} />
                                 </div>
-                                <span className="text-surface-500 text-xs">Thinking…</span>
+                                <span className="text-surface-500 text-xs">Nexa is Thinking…</span>
                             </div>
                         </div>
                     </div>
