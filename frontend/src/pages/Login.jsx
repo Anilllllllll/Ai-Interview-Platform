@@ -56,7 +56,7 @@ const Login = () => {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="w-full max-w-md relative z-10"
+                className="w-full max-w-md max-w-[calc(100vw-2rem)] relative z-10"
             >
                     <div className="relative p-6 sm:p-8 rounded-2xl border border-primary-100/60 overflow-hidden shadow-2xl"
                         style={{

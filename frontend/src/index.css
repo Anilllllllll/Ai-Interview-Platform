@@ -178,6 +178,12 @@
     h1 { @apply text-2xl !important; }
     h2 { @apply text-xl !important; }
     h3 { @apply text-lg !important; }
+    .input-field, .select-field {
+      @apply py-2 px-3 text-sm !important;
+    }
+    .label-text {
+      @apply mb-1 text-xs !important;
+    }
     .glass-panel, .bg-white, .glass-card {
       @apply p-4 !important;
     }

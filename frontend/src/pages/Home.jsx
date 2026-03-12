@@ -109,7 +109,7 @@ const Home = () => {
         <div className="overflow-hidden">
 
             {/* ═══════════════ HERO SECTION ═══════════════ */}
-            <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+            <section className="relative min-h-[calc(100vh-4rem)] flex items-start pt-12 sm:items-center sm:pt-0 px-4 sm:px-6 lg:px-8 overflow-hidden">
                 {/* Background decorations */}
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute top-1/4 -left-40 w-[600px] h-[600px] bg-primary-500/5 rounded-full blur-[160px] animate-float" />
@@ -123,7 +123,7 @@ const Home = () => {
                     <FloatingParticle size={9} color="rgba(255,107,0,0.15)" top="15%" left="65%" delay={3} />
                 </div>
 
-                <div className="max-w-7xl mx-auto w-full relative z-10 pt-4 pb-16 lg:pt-8 lg:pb-24">
+                <div className="max-w-7xl mx-auto w-full relative z-10 pt-0 pb-16 lg:pt-8 lg:pb-24">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         {/* Left — Text */}
                         <motion.div

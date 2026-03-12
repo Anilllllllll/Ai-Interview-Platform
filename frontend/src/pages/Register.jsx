@@ -58,7 +58,7 @@ const Register = () => {
                 <div className="absolute bottom-1/3 -left-32 w-[500px] h-[500px] bg-primary-100/5 rounded-full blur-[140px] animate-float-delayed" />
             </div>
 
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-lg relative z-10">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-lg max-w-[calc(100vw-2rem)] relative z-10">
                 <div className="relative p-6 sm:p-8 rounded-2xl border border-primary-100/60 overflow-hidden shadow-2xl"
                     style={{ background: "rgba(255, 255, 255, 0.94)", backdropFilter: "blur(24px) saturate(150%)" }}>
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
