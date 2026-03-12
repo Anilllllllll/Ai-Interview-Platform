@@ -318,11 +318,11 @@ const Interview = () => {
     const handleAnswer = useCallback(
         (answer) => {
             if (!socketRef.current || !sessionIdRef.current) return;
-            if (!answer.trim()) return;
-            console.log("[Interview] Answer received:", answer.substring(0, 50) + "...");
-            setTranscript((prev) => [...prev, { role: "user", content: answer }]);
+            const finalAnswer = answer.trim() || "(User finished answering)";
+            console.log("[Interview] Submitting answer...", finalAnswer.substring(0, 30));
+            setTranscript((prev) => [...prev, { role: "user", content: finalAnswer }]);
             setIsProcessingAnswer(true);
-            socketRef.current.emit("interview:answer", { sessionId: sessionIdRef.current, answer });
+            socketRef.current.emit("interview:answer", { sessionId: sessionIdRef.current, answer: finalAnswer });
         },
         []
     );
