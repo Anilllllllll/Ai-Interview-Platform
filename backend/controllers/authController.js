@@ -45,6 +45,7 @@ const register = async (req, res, next) => {
             user: user.toJSON(),
         });
     } catch (error) {
+        logger.error(`Registration error: ${error.message}`, { stack: error.stack, body: req.body });
         next(error);
     }
 };
@@ -61,11 +62,13 @@ const login = async (req, res, next) => {
 
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
+            logger.warn(`Login failed: User not found - ${email}`);
             return res.status(401).json({ message: "Invalid email or password." });
         }
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+            logger.warn(`Login failed: Invalid password - ${email}`);
             return res.status(401).json({ message: "Invalid email or password." });
         }
 
@@ -79,6 +82,7 @@ const login = async (req, res, next) => {
             user: user.toJSON(),
         });
     } catch (error) {
+        logger.error(`Login error: ${error.message}`, { stack: error.stack, email: req.body.email });
         next(error);
     }
 };
