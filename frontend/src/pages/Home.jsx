@@ -123,7 +123,7 @@ const Home = () => {
                     <FloatingParticle size={9} color="rgba(255,107,0,0.15)" top="15%" left="65%" delay={3} />
                 </div>
 
-                <div className="max-w-7xl mx-auto w-full relative z-10 py-16 lg:py-24">
+                <div className="max-w-7xl mx-auto w-full relative z-10 pt-4 pb-16 lg:pt-8 lg:pb-24">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         {/* Left — Text */}
                         <motion.div
@@ -131,15 +131,6 @@ const Home = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                         >
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary-50 border border-primary-200/60 mb-8"
-                            >
-                                <Sparkles className="w-4 h-4 text-primary-500" />
-                                <span className="text-sm font-medium text-primary-600">AI-Powered Interview Platform</span>
-                            </motion.div>
 
                             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold font-heading leading-[1.1] mb-6">
                                 <span className="text-surface-900">Ace Your Next</span>

@@ -286,41 +286,23 @@ const VoiceAnswerInput = ({
                     )}
                 </div>
 
-                {/* Animated AI Orb */}
-                <div className="voice-orb-container">
-                    {/* Pulse rings when listening */}
-                    {status === "listening" && (
-                        <>
-                            <div className="voice-ring" />
-                            <div className="voice-ring" />
-                            <div className="voice-ring" />
-                        </>
-                    )}
-                    {/* Glow rings when idle */}
-                    {status === "idle" && !disabled && (
-                        <>
-                            <div className="voice-glow-ring" />
-                            <div className="voice-glow-ring" />
-                        </>
-                    )}
-
+                {/* Mic Control Button - Sleeker version */}
+                <div className="flex flex-col items-center">
                     <button
                         onClick={status === "listening" ? stopAndSubmit : startListening}
                         disabled={disabled || status === "processing"}
-                        className={orbClass}
+                        className={`group relative flex items-center justify-center w-16 h-16 rounded-full transition-all duration-300 ${status === "listening" ? "bg-red-500 shadow-lg shadow-red-500/30 active:scale-90" : "bg-primary-500 shadow-lg shadow-primary-500/30 active:scale-95 hover:bg-primary-600"}`}
                         id="voice-mic-button"
                     >
                         {status === "listening" ? (
-                            /* Stop icon */
-                            <svg className="w-10 h-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <rect x="6" y="6" width="12" height="12" rx="2" />
                             </svg>
                         ) : status === "processing" ? (
-                            <div className="w-8 h-8 border-3 border-white/80 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-3 border-white/80 border-t-transparent rounded-full animate-spin" />
                         ) : (
-                            /* Mic icon */
-                            <svg className="w-10 h-10 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                     d="M19 11a7 7 0 01-14 0m14 0a7 7 0 00-14 0m14 0v1a7 7 0 01-14 0v-1m7 8v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
                             </svg>
                         )}

@@ -52,15 +52,15 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8 sm:py-12 relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-primary-200/30 rounded-full blur-[100px] animate-float" />
-                <div className="absolute bottom-1/3 -left-32 w-[500px] h-[500px] bg-primary-100/40 rounded-full blur-[100px] animate-float-delayed" />
+                <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-primary-200/5 rounded-full blur-[140px] animate-float" />
+                <div className="absolute bottom-1/3 -left-32 w-[500px] h-[500px] bg-primary-100/5 rounded-full blur-[140px] animate-float-delayed" />
             </div>
 
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-lg relative z-10">
-                <div className="relative p-8 rounded-2xl border border-primary-100/60 overflow-hidden"
-                    style={{ background: "rgba(255, 255, 255, 0.9)", backdropFilter: "blur(24px) saturate(150%)", boxShadow: "0 8px 40px rgba(255, 107, 0, 0.08)" }}>
+                <div className="relative p-6 sm:p-8 rounded-2xl border border-primary-100/60 overflow-hidden shadow-2xl"
+                    style={{ background: "rgba(255, 255, 255, 0.94)", backdropFilter: "blur(24px) saturate(150%)" }}>
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
 
                     <motion.div variants={itemVariants} className="text-center mb-8">

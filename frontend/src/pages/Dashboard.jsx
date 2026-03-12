@@ -212,13 +212,13 @@ const Dashboard = () => {
 
                 <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                     <div className="flex items-center gap-5">
-                        <motion.div
-                            animate={{ y: [0, -8, 0] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-xl shadow-primary-500/30"
-                        >
-                            <Sparkles className="w-8 h-8 text-white" />
-                        </motion.div>
+                            <motion.div
+                                animate={{ y: [0, -8, 0] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl shadow-primary-500/10 border border-primary-100"
+                            >
+                                <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+                            </motion.div>
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-slate-100 font-heading">
                                 {t("dashboard.welcome")}, <span className="bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">{user?.name?.split(" ")[0]}</span>
