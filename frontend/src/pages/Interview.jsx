@@ -736,13 +736,13 @@ const Interview = () => {
             </div>
 
             {/* Main content area */}
-            <div className="flex flex-1 overflow-hidden">
-                <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
+                <div className="flex-1 flex flex-col overflow-hidden w-full">
                     <InterviewChat transcript={transcript} isLoading={isProcessingAnswer} />
                 </div>
 
                 {cameraActive && (
-                    <div className="hidden md:flex flex-col items-center px-4 py-6 border-l border-surface-200/60 bg-white/50">
+                    <div className="absolute md:relative bottom-4 right-4 md:bottom-auto md:right-auto md:flex flex-col items-center px-2 md:px-4 py-3 md:py-6 border-l-0 md:border-l border-surface-200/60 bg-white/10 md:bg-white/50 backdrop-blur-md md:backdrop-blur-none rounded-2xl md:rounded-none z-20 md:z-auto shadow-2xl md:shadow-none transition-all duration-500">
                         <CameraPreview
                             isActive={cameraActive}
                             liveMetrics={liveMetrics}

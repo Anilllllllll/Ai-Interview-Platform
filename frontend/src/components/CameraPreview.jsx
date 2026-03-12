@@ -124,8 +124,8 @@ const CameraPreview = ({ isActive, liveMetrics, onVideoReady, isRecording, isMod
                 </span>
             </div>
 
-            {/* Metric bars */}
-            <div className="w-full mt-3 space-y-1.5">
+            {/* Metric bars - hidden on mobile for better space usage */}
+            <div className="w-full mt-3 space-y-1.5 hidden md:block">
                 <MetricBar label="Eye" value={liveMetrics.eyeContact} color="#60a5fa" />
                 <MetricBar label="Express" value={liveMetrics.facialExpression} color="#a78bfa" />
                 <MetricBar label="Posture" value={liveMetrics.posture} color="#10b981" />

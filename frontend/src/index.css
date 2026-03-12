@@ -167,6 +167,22 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-primary-400 to-primary-300;
   }
 
+  /* Mobile accessibility/smoothness */
+  @media (max-width: 640px) {
+    .btn-primary, .btn-secondary, .btn-danger {
+      @apply py-2.5 px-4 text-sm active:scale-95;
+    }
+    .chat-bubble-ai, .chat-bubble-user {
+      @apply p-3 text-sm;
+    }
+    h1 { @apply text-2xl !important; }
+    h2 { @apply text-xl !important; }
+    h3 { @apply text-lg !important; }
+    .glass-panel, .bg-white, .glass-card {
+      @apply p-4 !important;
+    }
+  }
+
   .loading-dots::after {
     content: "";
     animation: dots 1.5s steps(4) infinite;
@@ -584,6 +600,13 @@
     align-items: center;
     width: 200px;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+
+  @media (max-width: 768px) {
+    .camera-preview-container {
+      width: 110px;
+    }
   }
 
   .camera-circle {
@@ -594,6 +617,14 @@
     position: relative;
     border: 2px solid rgba(255, 107, 0, 0.3);
     background: #f8f4f0;
+    transition: all 0.3s ease;
+  }
+
+  @media (max-width: 768px) {
+    .camera-circle {
+      width: 90px;
+      height: 90px;
+    }
   }
 
   .camera-video {
@@ -615,6 +646,13 @@
     pointer-events: none;
     transition: all 0.8s ease;
     animation: cameraGlow 3s ease-in-out infinite;
+  }
+
+  @media (max-width: 768px) {
+    .camera-glow-ring {
+      width: 96px;
+      height: 96px;
+    }
   }
 
   @keyframes cameraGlow {
