@@ -298,14 +298,14 @@ const Report = () => {
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
                             className="text-surface-500 text-sm mt-4 max-w-md leading-relaxed"
                         >
-                            Your performance across {scoreCards.filter(c => c.score > 0).length} evaluated categories.
+                            Your performance across {scoreCards.length} evaluated categories.
                             {overallScore >= 70 ? " Great job — keep building on your strengths!" : " Focus on the improvement areas below to level up."}
                         </motion.p>
 
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
                             className="flex flex-wrap gap-2 mt-4 justify-center md:justify-start"
                         >
-                            {scoreCards.filter(c => c.score > 0).map((card) => (
+                            {scoreCards.map((card) => (
                                 <span key={card.label} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-surface-200 bg-white shadow-sm">
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: card.color }} />
                                     <span className="text-surface-500">{card.label.split(" ")[0]}</span>
@@ -319,7 +319,7 @@ const Report = () => {
 
             {/* ── Score Cards Grid ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {scoreCards.filter(c => c.score > 0).map((card, i) => (
+                {scoreCards.map((card, i) => (
                     <ScoreCard key={card.label} {...card} index={i} delay={0.3} />
                 ))}
             </div>
@@ -336,8 +336,8 @@ const Report = () => {
                     <div className="relative p-6 rounded-xl border border-surface-200/80 overflow-hidden flex items-center justify-center"
                         style={{ background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(12px)", boxShadow: "0 2px 16px rgba(0, 0, 0, 0.04)" }}>
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-surface-300/30 to-transparent" />
-                        <div className="grid grid-cols-3 gap-6">
-                            {scoreCards.filter(c => c.score > 0).map((card) => (
+                        <div className="grid grid-cols-2 xs:grid-cols-3 gap-4 sm:gap-6">
+                            {scoreCards.map((card) => (
                                 <AnimatedScore key={card.label} score={card.score} size={80} strokeWidth={6} label={card.label.split(" ")[0]} />
                             ))}
                         </div>
