@@ -64,4 +64,12 @@ export const uploadAPI = {
         }),
 };
 
+export const atsAPI = {
+    analyze: (formData) =>
+        api.post("/ats/analyze", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+            timeout: 60000,
+        }),
+};
+
 export default api;

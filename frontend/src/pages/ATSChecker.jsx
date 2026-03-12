@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import { atsAPI } from "../services/api";
 import {
     UploadCloud, FileText, CheckCircle, XCircle, AlertCircle,
     TrendingUp, Sparkles, Target, Zap, Award, ChevronRight,
@@ -105,13 +105,7 @@ const ATSChecker = () => {
         try {
             const formData = new FormData();
             formData.append("resume", file);
-            const token = localStorage.getItem("token");
-            const res = await axios.post("/api/ats/analyze", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const res = await atsAPI.analyze(formData);
             setResult(res.data.analysis);
         } catch (err) {
             setError(err.response?.data?.message || "Analysis failed. Please try again.");
