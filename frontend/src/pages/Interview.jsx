@@ -391,8 +391,8 @@ const Interview = () => {
         return (
             <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-20 -left-32 w-[500px] h-[500px] bg-primary-100/30 rounded-full blur-[100px] animate-float" />
-                    <div className="absolute bottom-20 -right-32 w-[500px] h-[500px] bg-primary-50/40 rounded-full blur-[100px] animate-float-delayed" />
+                    <div className="absolute top-20 -left-64 w-[600px] h-[600px] bg-primary-500/5 rounded-full blur-[160px] animate-float" />
+                    <div className="absolute bottom-20 -right-64 w-[600px] h-[600px] bg-primary-400/5 rounded-full blur-[160px] animate-float-delayed" />
                 </div>
 
                 <div className="text-center mb-8 relative z-10 animate-fade-in">

@@ -112,9 +112,9 @@ const Home = () => {
             <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
                 {/* Background decorations */}
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/4 -left-40 w-[600px] h-[600px] bg-primary-200/25 rounded-full blur-[120px] animate-float" />
-                    <div className="absolute bottom-1/4 -right-40 w-[500px] h-[500px] bg-primary-100/30 rounded-full blur-[100px] animate-float-delayed" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary-50/40 rounded-full blur-[90px]" />
+                    <div className="absolute top-1/4 -left-40 w-[600px] h-[600px] bg-primary-500/5 rounded-full blur-[160px] animate-float" />
+                    <div className="absolute bottom-1/4 -right-40 w-[500px] h-[500px] bg-primary-400/5 rounded-full blur-[160px] animate-float-delayed" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary-300/5 rounded-full blur-[140px]" />
                     <FloatingParticle size={8} color="rgba(255,107,0,0.3)" top="20%" left="10%" delay={0} />
                     <FloatingParticle size={6} color="rgba(251,146,60,0.4)" top="30%" left="85%" delay={1} />
                     <FloatingParticle size={10} color="rgba(255,107,0,0.2)" top="60%" left="15%" delay={2} />

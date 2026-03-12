@@ -228,16 +228,16 @@
   /* ─── Voice interview: animated AI orb ─────────────────── */
   .voice-orb-container {
     position: relative;
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .voice-orb {
-    width: 96px;
-    height: 96px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     position: relative;
     z-index: 10;
@@ -326,14 +326,14 @@
 
   @keyframes ringExpand {
     0% {
-      width: 96px;
-      height: 96px;
+      width: 80px;
+      height: 80px;
       opacity: 0.6;
     }
 
     100% {
-      width: 160px;
-      height: 160px;
+      width: 140px;
+      height: 140px;
       opacity: 0;
     }
   }
@@ -757,15 +757,28 @@
     100% { background-position: 0% 50%; }
   }
 
-  .floating-shape {
-    animation: floatShape 8s ease-in-out infinite;
-  }
-
   @keyframes floatShape {
     0%, 100% { transform: translateY(0) rotate(0deg); }
     33% { transform: translateY(-15px) rotate(5deg); }
     66% { transform: translateY(10px) rotate(-3deg); }
   }
+
+  /* Float animations for background blobs */
+  .animate-float {
+    animation: float 20s ease-in-out infinite;
+  }
+  
+  .animate-float-delayed {
+    animation: float 25s ease-in-out infinite reverse;
+    animation-delay: -5s;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(30px, -50px); }
+    66% { transform: translate(-20px, 40px); }
+  }
+
 
   /* ─── Focused Interview Mode ───────────────────────────── */
   body.interview-active nav {
