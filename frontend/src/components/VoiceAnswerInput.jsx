@@ -91,7 +91,7 @@ const VoiceAnswerInput = ({
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = "en-US";
+        recognition.lang = "en-IN";
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -119,7 +119,15 @@ const VoiceAnswerInput = ({
         };
 
         recognition.onerror = (event) => {
+            console.warn("[Voice] Recognition error:", event.error);
             if (event.error === "aborted" || isStoppingRef.current) return;
+            
+            // Handle common temporary glitches without crashing the UI
+            if (event.error === "no-speech" || event.error === "network") {
+                console.log("[Voice] Non-fatal error, will restart in onend...");
+                return; 
+            }
+
             if (event.error === "not-allowed" || event.error === "service-not-allowed") {
                 destroyRecognition();
                 setError("Microphone access denied. Please allow mic access and reload.");
@@ -130,14 +138,33 @@ const VoiceAnswerInput = ({
 
         recognition.onend = () => {
             console.log("[Voice] Recognition ended, isStopping:", isStoppingRef.current, "status:", statusRef.current);
+            
             // Save any finalized text from this session before restarting
             if (finalTranscriptRef.current) {
                 savedTranscriptRef.current = (savedTranscriptRef.current + " " + finalTranscriptRef.current).trim();
                 finalTranscriptRef.current = "";
             }
+
+            // AUTO-RESTART logic: if we are supposed to be listening, fire it back up
             if (!isStoppingRef.current && statusRef.current === "listening") {
-                try { recognition.start(); return; } catch (_) { }
+                console.log("[Voice] Restarting recognition engine for continuity...");
+                try { 
+                    recognitionRef.current = new SpeechRecognition();
+                    // Copy settings and re-attach handlers
+                    recognitionRef.current.continuous = true;
+                    recognitionRef.current.interimResults = true;
+                    recognitionRef.current.lang = "en-IN";
+                    recognitionRef.current.onstart = recognition.onstart;
+                    recognitionRef.current.onresult = recognition.onresult;
+                    recognitionRef.current.onerror = recognition.onerror;
+                    recognitionRef.current.onend = recognition.onend;
+                    recognitionRef.current.start(); 
+                    return; 
+                } catch (e) {
+                    console.error("[Voice] Restart failed:", e.message);
+                }
             }
+
             if (statusRef.current !== "processing") {
                 setStatus("idle");
                 onRecordingChange?.(false);
@@ -289,7 +316,7 @@ const VoiceAnswerInput = ({
                         id="voice-mic-button"
                     >
                         {status === "listening" ? (
-                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-8 h-8 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                         ) : status === "processing" ? (
