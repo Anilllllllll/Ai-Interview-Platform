@@ -254,14 +254,22 @@ Experience Level: ${ra.experienceLevel || "N/A"}
 7. Resume Understanding (0-100)
    - How well the candidate explained their own projects and experience
    - Accuracy and depth of knowledge about their listed skills
-   - Ability to discuss their work experience confidently
-   - Score Guide: 90-100=Deep understanding, 70-89=Good grasp, 50-69=Surface level, 30-49=Struggled, 0-29=Could not explain own resume`;
+   - Score Guide: 90-100=Deep understanding, 70-89=Good grasp, 50-69=Surface level, 30-49=Struggled, 0-29=Could not explain own resume (Score 0 if no resume questions were answered)`;
 
         resumeJsonField = `\n  "resumeUnderstanding": <number>,`;
         paramCount = "7";
     }
 
-    const feedbackPrompt = `The interview is now complete. Evaluate the candidate based on their spoken answers AND their gesture/body language data.
+    // Participation analysis
+    const candidateAnswers = transcript?.filter(t => t.role === "user") || [];
+    const totalAnswerLength = candidateAnswers.reduce((acc, curr) => acc + (curr.content?.length || 0), 0);
+    const isAborted = candidateAnswers.length === 0 || totalAnswerLength < 20;
+
+    const strictModeDirective = isAborted 
+        ? "\n[STRICT EVALUATION MODE: The candidate provided NO substantial answers. You MUST score all technical and domain categories as 0. Do NOT hypothesize or assume knowledge.]\n" 
+        : "";
+
+    const feedbackPrompt = `The interview is now complete. Evaluate the candidate based on their spoken answers AND their gesture/body language data. ${strictModeDirective}
 
 --- BEGIN INTERVIEW TRANSCRIPT ---
 ${transcriptText}
@@ -278,40 +286,40 @@ Evaluate the candidate on these ${paramCount} parameters:
    - Correctness of technical concepts
    - Depth of knowledge and accuracy of explanations
    - Score Guide: 90-100=Excellent expert-level, 70-89=Strong with minor gaps, 50-69=Average, 30-49=Weak, 0-29=Very poor
+   - CRITICAL: Give 0 if no technical questions were answered. Do NOT give points for "potential".
 
 2. Communication Skills (0-100)
    - Clarity of speech, fluency, articulation
    - Confidence in speaking
-   - Use gesture confidence data to adjust: high gesture confidence → increase score
+   - If candidate said nothing, score 0.
 
 3. Problem Solving (0-100)
    - Logical and structured thinking
    - Reasoning ability and approach to problems
+   - Give 0 if no problems were attempted.
 
 4. Domain Knowledge (0-100)
    - Knowledge of relevant technologies, frameworks, tools
    - Familiarity with real-world usage
+   - Give 0 if no domain-specific questions were answered.
 
 5. Confidence Score (0-100)
    - Based on eye contact score, posture score, speaking confidence, hesitation level
    - Higher eye contact + stable posture = higher score
-   - If candidate appears nervous → reduce slightly
+   - If candidate was silent/aborted, score based on visual confidence only, but keep it low (<30).
 
 6. Professional Presence (0-100)
    - Based on facial expressions, engagement level, attentiveness, body language
-   - High engagement → increase score
+   - If candidate aborted, Professional Presence should be very low.
 ${resumeParam}
 
 IMPORTANT INSTRUCTIONS:
-- Evaluate ONLY based on the provided data
-- Do NOT give 0 unless answer is completely missing or irrelevant
-- Be fair and realistic
-- Do NOT assume missing information
-- If answer is partially correct, give partial score
-- If answer is strong, give high score
-- Consider both technical answers AND gesture confidence
-- Reward confident and clear candidates
-- If no gesture data available, score Confidence and Professional Presence based on verbal cues only
+- Evaluate ONLY based on the provided evidence in the transcript.
+- If the candidate provided no answers or very short/empty answers, YOU MUST SCORE Technical Skills, Problem Solving, Domain Knowledge, and Resume Understanding as 0.
+- Do NOT hallucinate skills or attribute knowledge that was not explicitly demonstrated.
+- Be extremely critical of incomplete interviews. 
+- If the interview was aborted early (0-2 questions), the "detailedFeedback" MUST start with: "This interview was terminated prematurely or the candidate provided insufficient responses for a full evaluation."
+- Be fair but realistic. "Average" (50+) requires actual correct answers.
 
 Overall Score = average of all ${paramCount} scores (round to nearest integer)
 
