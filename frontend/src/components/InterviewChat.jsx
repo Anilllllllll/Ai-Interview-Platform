@@ -91,7 +91,7 @@ const InterviewChat = ({ transcript, isLoading }) => {
                         </div>
                         <div className="chat-bubble-ai p-4 shimmer">
                             <div className="flex items-center space-x-1.5 mb-1.5">
-                                <span className="text-[10px] font-bold text-primary-600 tracking-wider uppercase">AI Interviewer</span>
+                                <span className="text-[10px] font-bold text-primary-600 tracking-wider uppercase">Nexa Interviewer</span>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <div className="flex space-x-1.5">
