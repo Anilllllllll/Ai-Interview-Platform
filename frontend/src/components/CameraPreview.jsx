@@ -67,6 +67,7 @@ const CameraPreview = ({ isActive, liveMetrics, onVideoReady, isRecording, isMod
                 <Webcam
                     ref={webcamRef}
                     audio={true}
+                    muted={true}
                     mirrored
                     onUserMedia={handleUserMedia}
                     videoConstraints={{
