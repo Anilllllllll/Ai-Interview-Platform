@@ -71,9 +71,21 @@ const Login = () => {
                     <motion.div variants={itemVariants} className="text-center mb-8">
                         <motion.div
                             whileHover={{ scale: 1.05, rotate: 5 }}
-                            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center mx-auto mb-5 shadow-xl shadow-primary-500/30"
+                            className="w-16 h-16 flex items-center justify-center mx-auto mb-5"
                         >
-                            <Sparkles className="w-8 h-8 text-white" />
+                            <img 
+                                src="/logo.png" 
+                                alt="Nexa Logo" 
+                                className="w-16 h-16 object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" 
+                                onError={(e) => {
+                                    e.target.onerror = null; 
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                            <div className="hidden w-full h-full rounded-2xl bg-gradient-to-br from-primary-500 to-primary-400 items-center justify-center shadow-xl shadow-primary-500/30">
+                                <Sparkles className="w-8 h-8 text-white" />
+                            </div>
                         </motion.div>
                         <h1 className="text-2xl font-bold text-surface-900 font-heading">{t("auth.loginTitle")}</h1>
                         <p className="text-surface-500 mt-2 text-sm">{t("auth.loginSubtitle")}</p>

@@ -137,7 +137,7 @@ const Home = () => {
                                 <br />
                                 <span className="hero-gradient-text">Interview</span>
                                 <br />
-                                <span className="text-surface-900">With AI</span>
+                                <span className="text-surface-900">With Nexa</span>
                             </h1>
 
                             <p className="text-lg sm:text-xl text-surface-500 max-w-xl mb-10 leading-relaxed">
@@ -559,7 +559,7 @@ const Home = () => {
                                     </div>
                                 </div>
                                 <span className="text-xl font-bold font-heading bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
-                                    InterviewAI
+                                    Nexa
                                 </span>
                             </Link>
                             <p className="text-sm text-surface-500 leading-relaxed max-w-xs">
@@ -626,7 +626,7 @@ const Home = () => {
                     {/* Bottom bar */}
                     <div className="pt-8 border-t border-surface-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <p className="text-xs text-surface-400">
-                            &copy; {new Date().getFullYear()} InterviewAI. All rights reserved.
+                            &copy; {new Date().getFullYear()} Nexa. All rights reserved.
                         </p>
                         <div className="flex items-center space-x-6">
                             <a href="#" className="text-xs text-surface-400 hover:text-primary-500 transition-colors">Privacy Policy</a>

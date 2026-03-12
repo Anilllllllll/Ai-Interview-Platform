@@ -85,7 +85,7 @@ const Navbar = () => {
                             </div>
                         </motion.div>
                         <span className="text-xl font-bold font-heading bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent hidden sm:block">
-                            InterviewAI
+                            Nexa
                         </span>
                     </Link>
 
