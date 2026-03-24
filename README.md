@@ -1,39 +1,104 @@
-# AI Interview App
+# 🤖 AI Interview App — Full Stack Mock Interview Platform
 
-A production-ready full-stack SaaS application for practicing job interviews with an AI interviewer. The AI adapts to your domain and specialization, asks realistic questions, maintains conversation context, and provides structured feedback with scoring.
+A production-ready **full-stack SaaS application** that allows users to practice job interviews with an AI interviewer.
+The AI adapts to your **domain, specialization, and difficulty level**, asks realistic questions, maintains conversation context, evaluates answers, and provides **structured feedback with scores and analytics**.
 
-## Tech Stack
+---
 
-**Frontend:** React 18, Vite, Tailwind CSS, React Router v6, Socket.io-client, Chart.js, Monaco Editor, react-i18next (EN/HI)  
-**Backend:** Node.js, Express, MongoDB/Mongoose, JWT + Passport Google OAuth, Socket.io, OpenAI (gpt-4o-mini / gpt-4o), Winston, Multer  
+## 📸 Preview
 
-## Quick Start
+<img width="1919" height="1106" src="https://github.com/user-attachments/assets/da2b206c-5a3c-4e11-8c7a-9b65972a688b" />
+<img width="1919" height="1096" src="https://github.com/user-attachments/assets/32944ea5-d4fb-46e8-a24a-25f76bc543e6" />
+
+---
+
+## 🚀 Key Features
+
+* 🤖 AI-powered mock interviews
+* 🧠 Adaptive question generation
+* 💬 Real-time interview chat using Socket.io
+* 📊 Feedback scoring & analytics dashboard
+* 📝 Resume upload (PDF/DOCX)
+* 🌐 Multi-language support (English / Hindi)
+* 🔐 Authentication (JWT + Google OAuth)
+* 💾 Interview history & session persistence
+* 💻 Code editor for technical interviews (Monaco Editor)
+* 📈 Performance tracking with charts
+* ☁️ Deployable full-stack SaaS architecture
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+* React 18
+* Vite
+* Tailwind CSS
+* React Router v6
+* Socket.io Client
+* Chart.js
+* Monaco Editor
+* i18next (Internationalization)
+
+### Backend
+
+* Node.js
+* Express.js
+* MongoDB / Mongoose
+* JWT Authentication
+* Passport Google OAuth
+* Socket.io
+* OpenAI API (GPT models)
+* Multer (File Upload)
+* Winston Logger
+
+---
+
+## ⚙️ Installation & Setup
 
 ### Prerequisites
 
-- Node.js 20+
-- MongoDB Atlas account (or local MongoDB)
-- OpenAI API key
+* Node.js 20+
+* MongoDB Atlas account
+* OpenAI API key
 
-### 1. Clone & Setup Environment
+---
+
+### 1️⃣ Clone Repository
 
 ```bash
-# Copy environment template
-cp .env.example backend/.env
+git clone https://github.com/your-username/ai-interview-app.git
+cd ai-interview-app
+```
 
-# Edit backend/.env with your actual values:
-# - MONGO_URI (MongoDB Atlas connection string)
-# - JWT_SECRET (any long random string)
-# - OPENAI_API_KEY (your OpenAI key)
-# - GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET (optional, for Google OAuth)
+### 2️⃣ Setup Environment Variables
+
+Copy environment template:
+
+```bash
+cp .env.example backend/.env
+```
+
+Edit `backend/.env` and add:
+
+```
+MONGO_URI=your_mongodb_connection
+JWT_SECRET=your_secret
+OPENAI_API_KEY=your_openai_key
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
 ```
 
 Create `frontend/.env`:
+
 ```
 VITE_API_URL=http://localhost:5000
 ```
 
-### 2. Install Dependencies
+---
+
+### 3️⃣ Install Dependencies
 
 ```bash
 # Backend
@@ -45,137 +110,116 @@ cd ../frontend
 npm install
 ```
 
-### 3. Run Development Servers
+---
+
+### 4️⃣ Run Development Servers
 
 ```bash
-# Terminal 1 - Backend
+# Backend
 cd backend
 npm run dev
-# Server starts on http://localhost:5000
+# Runs on http://localhost:5000
 
-# Terminal 2 - Frontend
+# Frontend
 cd frontend
 npm run dev
-# App starts on http://localhost:5173
+# Runs on http://localhost:5173
 ```
 
-### 4. Run Tests
+---
 
-```bash
-cd backend
-npm test
-```
-
-## Project Structure
+## 📂 Project Structure
 
 ```
 root/
 ├── backend/
-│   ├── config/db.js              # MongoDB connection
-│   ├── controllers/              # Route handlers
-│   │   ├── authController.js
-│   │   ├── interviewController.js
-│   │   └── uploadController.js
-│   ├── middleware/
-│   │   ├── auth.js               # JWT + Passport
-│   │   └── errorHandler.js
+│   ├── controllers/
 │   ├── models/
-│   │   ├── User.js
-│   │   └── InterviewSession.js
 │   ├── routes/
-│   │   ├── auth.js
-│   │   ├── interview.js
-│   │   └── upload.js
-│   ├── services/openaiService.js # OpenAI integration
-│   ├── utils/logger.js           # Winston logger
-│   ├── __tests__/auth.test.js
-│   ├── server.js                 # Express + Socket.io
-│   └── package.json
+│   ├── middleware/
+│   ├── services/
+│   └── server.js
+│
 ├── frontend/
-│   ├── src/
-│   │   ├── components/           # Reusable UI components
-│   │   ├── context/AuthContext.jsx
-│   │   ├── pages/                # Route pages
-│   │   ├── services/api.js       # Axios client
-│   │   ├── i18n.js               # Internationalization
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── package.json
-├── .env.example
+│   ├── components/
+│   ├── pages/
+│   ├── context/
+│   ├── services/
+│   └── App.jsx
+│
 └── README.md
 ```
 
-## API Endpoints
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login |
-| GET | `/api/auth/profile` | Get profile (auth) |
-| PUT | `/api/auth/profile` | Update profile (auth) |
-| GET | `/api/auth/google` | Google OAuth |
-| POST | `/api/interview/start` | Start interview (auth) |
-| POST | `/api/interview/answer` | Submit answer (auth) |
-| POST | `/api/interview/end` | End & get feedback (auth) |
-| GET | `/api/interview/history` | Interview history (auth) |
-| GET | `/api/interview/active` | Get active session (auth) |
-| GET | `/api/interview/:id` | Get session by ID (auth) |
-| POST | `/api/upload/resume` | Upload resume (auth) |
+## 🔌 API Endpoints (Sample)
 
-## Socket.io Events
+| Method | Endpoint               | Description       |
+| ------ | ---------------------- | ----------------- |
+| POST   | /api/auth/register     | Register user     |
+| POST   | /api/auth/login        | Login             |
+| GET    | /api/auth/profile      | Get profile       |
+| POST   | /api/interview/start   | Start interview   |
+| POST   | /api/interview/answer  | Submit answer     |
+| POST   | /api/interview/end     | End interview     |
+| GET    | /api/interview/history | Interview history |
+| POST   | /api/upload/resume     | Upload resume     |
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `interview:start` | Client → Server | Start new interview |
-| `interview:answer` | Client → Server | Submit answer |
-| `interview:end` | Client → Server | End interview |
-| `interview:question` | Server → Client | New question |
-| `interview:end` | Server → Client | Feedback results |
-| `interview:error` | Server → Client | Error message |
+---
 
-## Features
+## 🌐 Deployment
 
-- **AI Interviewer**: GPT-4o-mini for questions, GPT-4o for feedback
-- **Session Persistence**: Full transcript saved to MongoDB, resumable on refresh
-- **Real-time Chat**: Socket.io with JWT authentication
-- **Domain Selection**: 9 domains, 10 specializations, 4 difficulty levels
-- **Code Editor**: Monaco editor for technical answers
-- **Analytics Dashboard**: Chart.js score trends and history
-- **Internationalization**: English and Hindi
-- **Resume Upload**: PDF/DOCX support via Multer
-- **Google OAuth**: One-click sign-in
-- **Security**: JWT, bcrypt, rate limiting, CORS, structured error handling
+**Frontend:** Vercel
+**Backend:** Render / Railway
+**Database:** MongoDB Atlas
 
-## Deployment
-
-### Frontend → Vercel
+Build frontend:
 
 ```bash
 cd frontend
 npm run build
-# Deploy dist/ folder to Vercel
-# Set environment variable: VITE_API_URL=https://your-backend.onrender.com
 ```
 
-### Backend → Render / Railway
+Deploy backend and add environment variables from `.env.example`.
 
-1. Push backend to a Git repo
-2. Connect to Render/Railway
-3. Set build command: `npm install`
-4. Set start command: `npm start`
-5. Add all environment variables from `.env.example`
+---
 
-### Database → MongoDB Atlas
+## 🎯 Learning Outcomes
 
-1. Create a free M0 cluster at [mongodb.com/atlas](https://mongodb.com/atlas)
-2. Create a database user
-3. Whitelist your IP (or 0.0.0.0/0 for Render)
-4. Copy connection string to `MONGO_URI`
+This project demonstrates:
 
-## License
+* Full-stack application architecture
+* Authentication & authorization
+* Real-time communication with Socket.io
+* AI API integration
+* File upload handling
+* Database schema design
+* REST API design
+* Deployment & environment configuration
+* Dashboard analytics visualization
 
-MIT
+---
+
+## 🔮 Future Improvements
+
+* Video interview support
+* Speech-to-text answers
+* AI voice interviewer
+* Company-specific interview sets
+* Leaderboard & ranking system
+* Email feedback reports
+* Interview scheduling
+* Admin dashboard
+
+---
+
+## 👨‍💻 Author
+
+**Anil Kumar**
+GitHub: https://github.com/Anilllllllll
+
+---
+
+## ⭐ Support
+
+If you like this project, please give it a **star ⭐ on GitHub**.
