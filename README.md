@@ -209,7 +209,7 @@ This project demonstrates:
 * Leaderboard & ranking system
 * Email feedback reports
 * Interview scheduling
-* Admin dashboard
+
 
 ---
 
