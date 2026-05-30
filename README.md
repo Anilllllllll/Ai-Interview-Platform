@@ -13,7 +13,6 @@ The AI adapts to your **domain, specialization, and difficulty level**, asks rea
 ---
 
 ## 🚀 Key Features
-
 * 🤖 AI-powered mock interviews
 * 🧠 Adaptive question generation
 * 💬 Real-time interview chat using Socket.io
