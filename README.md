@@ -219,6 +219,5 @@ GitHub: https://github.com/Anilllllllll
 
 ---
 
-## ⭐ Support
 
 If you like this project, please give it a **star ⭐ on GitHub**.
