@@ -11,6 +11,7 @@ The AI adapts to your **domain, specialization, and difficulty level**, asks rea
 <img width="1919" height="1096" src="https://github.com/user-attachments/assets/32944ea5-d4fb-46e8-a24a-25f76bc543e6" />
 
 ---
+___
 
 ## 🚀 Key Features
 * 🤖 AI-powered mock interviews
