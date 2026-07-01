@@ -1,0 +1,110 @@
+# ============================================
+# AI Interview App - Docker Compose
+# Orchestrates all services with one command
+# ============================================
+
+# 'services' defines all the containers that make up your application
+# Each service = one container
+services:
+
+  # -------------------------------------------------
+  # SERVICE 1: MongoDB (Database)
+  # -------------------------------------------------
+  # WHY local MongoDB instead of Atlas?
+  # 1. No internet needed for development
+  # 2. Faster — no network latency to cloud
+  # 3. Full control — easy to reset/seed data
+  # 4. Free — no Atlas limits
+  # In production, you'll still use Atlas or a managed DB
+  mongo:
+    # Official MongoDB image from Docker Hub
+    # Pin to major version (7) to avoid breaking changes
+    image: mongo:7
+
+    # Container name — makes it easier to reference in logs
+    container_name: ai-interview-mongo
+
+    # PORT MAPPING: host:container
+    # 27017 is MongoDB's default port
+    # This lets you connect from your HOST machine (e.g., MongoDB Compass)
+    # Other containers use the service name 'mongo' instead of localhost
+    ports:
+      - "27017:27017"
+
+    # VOLUMES: Persist data across container restarts
+    # Without this, all your database data is LOST when you run 'docker compose down'
+    # 'mongo-data' is a named volume managed by Docker
+    # /data/db is where MongoDB stores its data files inside the container
+    volumes:
+      - mongo-data:/data/db
+
+    # ENVIRONMENT: Configure MongoDB
+    # These create an admin user for the database
+    # In production, always use strong passwords
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+
+    # HEALTH CHECK: Docker checks if MongoDB is ready
+    # 'mongosh --eval' runs a MongoDB command to check status
+    # Compose won't start the 'api' service until mongo is healthy
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "-u", "admin", "-p", "admin123", "--authenticationDatabase", "admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    # RESTART POLICY: What happens when the container crashes
+    # 'unless-stopped' = always restart unless YOU manually stop it
+    # Other options: 'no', 'always', 'on-failure'
+    restart: unless-stopped
+
+  # -------------------------------------------------
+  # SERVICE 2: Backend API (Node.js)
+  # -------------------------------------------------
+  api:
+    # BUILD: Instead of pulling an image, build from our Dockerfile
+    # 'context' = the directory containing the Dockerfile
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: ai-interview-api
+
+    # PORT: Expose backend on port 5000
+    ports:
+      - "5000:5000"
+
+    # ENV FILE: Load environment variables from a file
+    # We use a separate .env.docker file with Docker-specific values
+    # (e.g., mongo hostname = 'mongo' instead of 'localhost')
+    env_file:
+      - ./backend/.env.docker
+
+    # DEPENDS_ON with condition:
+    # 'service_healthy' means: Don't start the API until MongoDB
+    # passes its health check. This prevents the API from crashing
+    # because it tries to connect to a database that isn't ready yet.
+    #
+    # Without 'condition: service_healthy', depends_on only waits
+    # for the container to START, not for the service to be READY.
+    # MongoDB takes 3-5 seconds to initialize — our API would crash.
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    # RESTART POLICY
+    restart: unless-stopped
+
+# -------------------------------------------------
+# NAMED VOLUMES
+# -------------------------------------------------
+# Volumes defined here are managed by Docker
+# Data persists even after 'docker compose down'
+# To DELETE data: 'docker compose down -v' (the -v flag removes volumes)
+volumes:
+  mongo-data:
+    # 'local' driver = stored on your machine's filesystem
+    # Docker manages the actual path (usually in /var/lib/docker/volumes/)
+    driver: local

@@ -1,0 +1,38 @@
+# Dependencies - will be installed fresh inside container
+node_modules
+
+# Environment files - NEVER bake secrets into an image
+.env
+.env.local
+.env.docker
+.env.production
+
+# Logs - containers generate their own logs
+logs
+*.log
+
+# Uploads - user data should NOT be in the image
+uploads
+
+# Tests - not needed in production image
+__tests__
+coverage
+*.test.js
+*.spec.js
+
+# Development files
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+nodemon.json
+README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
