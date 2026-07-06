@@ -183,7 +183,7 @@ const Interview = () => {
     useEffect(() => {
         if (!token) return;
 
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const apiUrl = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : "http://localhost:5000";
         const newSocket = io(apiUrl, {
             auth: { token },
             transports: ["websocket", "polling"],
