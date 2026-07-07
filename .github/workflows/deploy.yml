@@ -1,0 +1,114 @@
+# ============================================
+# GitHub Actions CI/CD Pipeline
+# Automatically deploys to EC2 on push to main
+# ============================================
+
+# NAME: Shows up in the GitHub Actions tab
+name: Deploy to EC2
+
+# TRIGGER: When does this pipeline run?
+# 'push to main' = every time code is pushed to the main branch
+# Pull requests to main will also trigger (for testing only, no deploy)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# JOBS: What to do when triggered
+jobs:
+
+  # ─────────────────────────────────────────
+  # JOB 1: TEST
+  # Run tests to catch bugs before deploying
+  # ─────────────────────────────────────────
+  test:
+    name: Run Tests
+    # 'runs-on' = which VM to use (GitHub provides free Ubuntu runners)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code from the repo
+      # This is like 'git clone' on the runner VM
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js
+      # 'actions/setup-node' installs the specified Node.js version
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # Cache npm dependencies — speeds up future runs by ~30 seconds
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # Step 3: Install backend dependencies
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      # Step 4: Run tests
+      # 'CI=true' makes test runners exit after completion (no watch mode)
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+        env:
+          CI: true
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-ci
+          MONGO_URI: mongodb://localhost:27017/test
+
+  # ─────────────────────────────────────────
+  # JOB 2: DEPLOY
+  # Deploy to EC2 (only on push to main, not PRs)
+  # ─────────────────────────────────────────
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    # Only deploy on push to main (not on pull requests)
+    # Also only deploy if tests pass
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Deploy via SSH
+      # This SSHs into your EC2 and runs the deploy script
+      # The SSH key is stored as a GitHub Secret (never in code)
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          # These values come from GitHub Secrets
+          # (Settings → Secrets and variables → Actions)
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+
+          # Commands to run on the EC2 server
+          # This is exactly what you've been doing manually!
+          script: |
+            cd ~/ai-interview-app
+
+            # Pull latest code
+            git pull origin main
+
+            # Build frontend
+            cd frontend
+            npm install
+            VITE_API_URL="" npm run build
+            cd ..
+
+            # Rebuild and restart containers
+            docker compose down
+            docker compose up --build -d
+
+            # Clean up old Docker images
+            docker image prune -f
+
+            # Verify deployment
+            sleep 15
+            curl -f http://localhost/api/health || echo "⚠️ Health check failed!"
