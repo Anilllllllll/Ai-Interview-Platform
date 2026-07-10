@@ -13,6 +13,7 @@ const jwt = require("jsonwebtoken");
 const connectDB = require("./config/db");
 const { initializePassport } = require("./middleware/auth");
 const errorHandler = require("./middleware/errorHandler");
+const requestLogger = require("./middleware/requestLogger");
 const logger = require("./utils/logger");
 
 const authRoutes = require("./routes/auth");
@@ -50,6 +51,10 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// --- Request Logging ---
+// Logs every HTTP request: method, url, status, duration, IP
+app.use(requestLogger);
+
 // --- Security: Tiered Rate Limiting ---
 // Global limiter applies to all API routes (100 req/15 min)
 app.use("/api/", globalLimiter);
@@ -85,11 +90,22 @@ app.use("/api/interview", interviewRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/ats", atsRoutes);
 
+// --- Enhanced Health Check ---
+// Returns system metrics for monitoring tools (UptimeRobot, AWS CloudWatch)
+const mongoose = require("mongoose");
 app.get("/api/health", (req, res) => {
+    const memoryUsage = process.memoryUsage();
     res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
+        uptime: `${Math.floor(process.uptime())}s`,
+        memory: {
+            rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+            heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+            heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+        },
+        database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+        environment: process.env.NODE_ENV || "development",
     });
 });
 
