@@ -7,7 +7,7 @@ const path = require("path");
 const fs = require("fs");
 const passport = require("passport");
 const { Server } = require("socket.io");
-const rateLimit = require("express-rate-limit");
+const { globalLimiter, authLimiter, aiLimiter } = require("./middleware/security");
 const jwt = require("jsonwebtoken");
 
 const connectDB = require("./config/db");
@@ -50,18 +50,9 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
-    message: { message: "Too many requests, please try again later." },
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => {
-        // Skip rate limiting for Google OAuth routes (browser redirects)
-        return req.originalUrl.includes("/auth/google");
-    },
-});
-app.use("/api/", limiter);
+// --- Security: Tiered Rate Limiting ---
+// Global limiter applies to all API routes (100 req/15 min)
+app.use("/api/", globalLimiter);
 
 app.use(passport.initialize());
 initializePassport();
@@ -78,6 +69,17 @@ if (!fs.existsSync(logsDir)) {
 }
 
 // --- Routes ---
+// Route-specific rate limiters BEFORE the route handlers
+// Auth: strict (5 attempts/15 min) — prevents brute force
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+
+// AI & Upload: moderate (20/hour) — prevents API cost abuse
+app.use("/api/interview", aiLimiter);
+app.use("/api/upload", aiLimiter);
+app.use("/api/ats", aiLimiter);
+
+// Route handlers
 app.use("/api/auth", authRoutes);
 app.use("/api/interview", interviewRoutes);
 app.use("/api/upload", uploadRoutes);
