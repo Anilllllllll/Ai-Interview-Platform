@@ -50,6 +50,28 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -------------------------------------------------
+  # SERVICE 3: Redis (Cache)
+  # -------------------------------------------------
+  # Redis = in-memory database for caching.
+  # Stores frequently accessed data in RAM (1ms vs 50ms from MongoDB).
+  # Used for: API response caching, session storage, rate limiting.
+  redis:
+    image: redis:7-alpine
+    container_name: ai-interview-redis
+    # No ports exposed — only the API container can access Redis
+    # via Docker's internal network (redis:6379)
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis-data:/data
     restart: unless-stopped
 
   # -------------------------------------------------
@@ -103,4 +125,5 @@ services:
 volumes:
   mongo-data:
     driver: local
-
+  redis-data:
+    driver: local

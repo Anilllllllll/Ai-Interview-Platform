@@ -11,6 +11,7 @@ const { globalLimiter, authLimiter, aiLimiter } = require("./middleware/security
 const jwt = require("jsonwebtoken");
 
 const connectDB = require("./config/db");
+const { connectRedis } = require("./config/redis");
 const { initializePassport } = require("./middleware/auth");
 const errorHandler = require("./middleware/errorHandler");
 const requestLogger = require("./middleware/requestLogger");
@@ -324,6 +325,7 @@ app.use(errorHandler);
 const startServer = async () => {
     try {
         await connectDB();
+        await connectRedis();
         server.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);
             logger.info(`CORS enabled for: ${FRONTEND_URL}`);
