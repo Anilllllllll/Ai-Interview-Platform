@@ -40,6 +40,23 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -------------------------------------------------
+  # SERVICE 3: Redis (Cache)
+  # -------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ai-interview-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis-data:/data
     restart: unless-stopped
 
   # -------------------------------------------------
@@ -103,4 +120,6 @@ services:
 
 volumes:
   mongo-data:
+    driver: local
+  redis-data:
     driver: local
