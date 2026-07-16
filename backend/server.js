@@ -338,4 +338,85 @@ const startServer = async () => {
 
 startServer();
 
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+// When Docker stops a container, it sends SIGTERM first.
+// We have 10 seconds to clean up before Docker sends SIGKILL.
+//
+// Without this: requests are cut off, DB connections leak.
+// With this: all active requests finish, connections close cleanly.
+
+const gracefulShutdown = async (signal) => {
+    logger.info(`${signal} received. Starting graceful shutdown...`);
+
+    // 1. Stop accepting NEW connections
+    server.close(() => {
+        logger.info("HTTP server closed. No new connections accepted.");
+    });
+
+    // 2. Close Socket.io connections
+    io.close(() => {
+        logger.info("Socket.io connections closed.");
+    });
+
+    // 3. Close database connections
+    try {
+        const mongoose = require("mongoose");
+        await mongoose.connection.close();
+        logger.info("MongoDB connection closed.");
+    } catch (err) {
+        logger.error("Error closing MongoDB:", err.message);
+    }
+
+    // 4. Close Redis connection
+    try {
+        const { getClient } = require("./config/redis");
+        const redisClient = getClient();
+        if (redisClient && redisClient.isOpen) {
+            await redisClient.quit();
+            logger.info("Redis connection closed.");
+        }
+    } catch (err) {
+        logger.error("Error closing Redis:", err.message);
+    }
+
+    logger.info("Graceful shutdown complete. Exiting.");
+    process.exit(0);
+};
+
+// Docker sends SIGTERM when stopping a container
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+// Ctrl+C in terminal sends SIGINT
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// ============================================
+// UNHANDLED ERRORS — Last line of defense
+// ============================================
+// These catch bugs that weren't handled in try/catch blocks.
+// Without these, the process crashes silently.
+
+// Uncaught exceptions: synchronous errors not in try/catch
+// Example: calling undefined.something()
+process.on("uncaughtException", (err) => {
+    logger.error("UNCAUGHT EXCEPTION! Shutting down...", {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+    });
+    // Must exit — the process is in an undefined state
+    process.exit(1);
+});
+
+// Unhandled promise rejections: async errors without .catch()
+// Example: await fetch("invalid-url") without try/catch
+process.on("unhandledRejection", (reason) => {
+    logger.error("UNHANDLED REJECTION! Shutting down...", {
+        reason: reason?.message || reason,
+        stack: reason?.stack,
+    });
+    // Close server gracefully, then exit
+    server.close(() => process.exit(1));
+});
+
 module.exports = { app, server, io };
