@@ -72,8 +72,10 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
+// INDEXES:
+// 'unique: true' on email (line 9) automatically creates a unique index.
+// 'sparse: true' on googleId (line 67) automatically creates a sparse index.
+// No need for explicit schema.index() calls — that causes duplicate warnings.
 
 userSchema.pre("save", async function (next) {
     if (!this.isModified("passwordHash") || !this.passwordHash) {

@@ -6,7 +6,9 @@ const interviewSessionSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
-            index: true,
+            // No 'index: true' here — the compound indexes below
+            // ({userId,status} and {userId,createdAt}) already cover
+            // all userId queries via the leftmost prefix rule.
         },
         role: {
             type: String,
@@ -99,8 +101,28 @@ const interviewSessionSchema = new mongoose.Schema(
     }
 );
 
+// ─────────────────────────────────────────
+// INDEXES — Optimized for actual query patterns
+// ─────────────────────────────────────────
+//
+// RULE: Create indexes based on HOW you query, not what fields exist.
+//
+// Our queries:
+//   1. findOne({ userId, status: "active" })  → compound index
+//   2. find({ userId }).sort({ createdAt: -1 }) → compound index
+//   3. countDocuments({ userId })              → covered by compound
+//
+// COMPOUND INDEX {userId: 1, status: 1}:
+//   - Covers queries filtering by userId + status (most common)
+//   - Also covers queries filtering by userId alone (leftmost prefix rule)
+//   - MongoDB can use a compound index for queries on ANY leftmost prefix
+//   - So this ONE index serves both query patterns #1 and #3
 interviewSessionSchema.index({ userId: 1, status: 1 });
-interviewSessionSchema.index({ createdAt: -1 });
+
+// COMPOUND INDEX {userId: 1, createdAt: -1}:
+//   - Covers "get user's sessions sorted by newest first" (dashboard)
+//   - -1 means descending order (newest first)
+interviewSessionSchema.index({ userId: 1, createdAt: -1 });
 
 const InterviewSession = mongoose.model(
     "InterviewSession",
