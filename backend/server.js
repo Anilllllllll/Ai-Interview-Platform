@@ -42,6 +42,38 @@ const io = new Server(server, {
     pingInterval: 25000,
 });
 
+// ─────────────────────────────────────────
+// Socket.io Redis Adapter (for horizontal scaling)
+// ─────────────────────────────────────────
+// WHY? Without this, if you run 2+ server instances behind
+// a load balancer, Socket.io events only reach users connected
+// to the SAME server. The Redis adapter uses Redis pub/sub
+// to broadcast events across ALL server instances.
+//
+// Interview answer: "We use the Redis adapter for Socket.io
+// so that WebSocket events are shared across multiple Node.js
+// instances via Redis pub/sub. This enables horizontal scaling."
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { createClient } = require("redis");
+
+const setupSocketRedisAdapter = async () => {
+    try {
+        const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
+        const pubClient = createClient({ url: REDIS_URL });
+        const subClient = pubClient.duplicate();
+
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+
+        io.adapter(createAdapter(pubClient, subClient));
+        logger.info("Socket.io Redis adapter connected (horizontal scaling ready)");
+    } catch (err) {
+        // Graceful degradation: works without Redis, just no cross-server events
+        logger.warn("Socket.io Redis adapter failed, using in-memory adapter:", err.message);
+    }
+};
+
+setupSocketRedisAdapter();
+
 // --- Middleware ---
 app.use(
     cors({
