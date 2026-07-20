@@ -152,17 +152,72 @@ const endInterview = async (req, res, next) => {
 
 const getHistory = async (req, res, next) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        // ─────────────────────────────────────────
+        // PAGINATION
+        // ─────────────────────────────────────────
+        // page=1&limit=10 → skip 0, return 10
+        // page=2&limit=10 → skip 10, return 10
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
         const skip = (page - 1) * limit;
 
+        // ─────────────────────────────────────────
+        // FILTERING
+        // ─────────────────────────────────────────
+        // Build query dynamically based on query params
+        // Example: GET /api/interview/history?status=completed&difficulty=Hard
+        const query = { userId: req.user._id };
+
+        // Filter by status (active/completed)
+        if (req.query.status && ["active", "completed"].includes(req.query.status)) {
+            query.status = req.query.status;
+        }
+
+        // Filter by difficulty
+        if (req.query.difficulty && ["Easy", "Medium", "Hard", "Expert"].includes(req.query.difficulty)) {
+            query.difficulty = req.query.difficulty;
+        }
+
+        // Filter by interview type
+        if (req.query.type && ["Technical", "Behavioral", "System Design", "Mixed"].includes(req.query.type)) {
+            query.interviewType = req.query.type;
+        }
+
+        // Filter by date range (e.g., last 7 days, last 30 days)
+        if (req.query.from || req.query.to) {
+            query.createdAt = {};
+            if (req.query.from) query.createdAt.$gte = new Date(req.query.from);
+            if (req.query.to) query.createdAt.$lte = new Date(req.query.to);
+        }
+
+        // ─────────────────────────────────────────
+        // FIELD PROJECTION
+        // ─────────────────────────────────────────
+        // For list view, we DON'T need the full transcript,
+        // questions, or answers — just summary fields.
+        // This reduces response size: ~5KB → ~500 bytes per session
+        const listFields = {
+            role: 1,
+            domain: 1,
+            specialization: 1,
+            difficulty: 1,
+            interviewType: 1,
+            interviewMode: 1,
+            overallScore: 1,
+            status: 1,
+            createdAt: 1,
+            endedAt: 1,
+            // Exclude large fields: transcript, questions, answers, feedback
+        };
+
         const [sessions, total] = await Promise.all([
-            InterviewSession.find({ userId: req.user._id })
+            InterviewSession.find(query)
+                .select(listFields)
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .lean(),
-            InterviewSession.countDocuments({ userId: req.user._id }),
+            InterviewSession.countDocuments(query),
         ]);
 
         res.json({
@@ -172,6 +227,8 @@ const getHistory = async (req, res, next) => {
                 limit,
                 total,
                 pages: Math.ceil(total / limit),
+                hasNext: page < Math.ceil(total / limit),
+                hasPrev: page > 1,
             },
         });
     } catch (error) {
