@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
+const helmet = require("helmet");
 const path = require("path");
 const fs = require("fs");
 const passport = require("passport");
@@ -75,6 +76,25 @@ const setupSocketRedisAdapter = async () => {
 setupSocketRedisAdapter();
 
 // --- Middleware ---
+// Helmet sets security headers on EVERY response.
+// Must come BEFORE other middleware so headers are always set.
+//
+// What helmet adds:
+//   X-Content-Type-Options: nosniff    → prevents MIME sniffing
+//   X-Frame-Options: DENY              → prevents clickjacking
+//   X-XSS-Protection: 0                → disables buggy browser XSS filter
+//   Strict-Transport-Security          → forces HTTPS (also set by Nginx)
+//   Removes X-Powered-By: Express      → hides server tech from attackers
+app.use(
+    helmet({
+        // Disable CSP here — Nginx handles it in production.
+        // If both set CSP, they can conflict and break the frontend.
+        contentSecurityPolicy: false,
+        // Allow cross-origin resource loading (fonts, images)
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+);
+
 app.use(
     cors({
         origin: [FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
