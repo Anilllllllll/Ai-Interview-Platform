@@ -221,7 +221,7 @@ const ATSChecker = () => {
                             
                             {/* Left Col: Resume Preview */}
                             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="w-full lg:w-1/3 flex flex-col gap-4">
-                                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-surface-200 dark:border-slate-800 shadow-lg p-5 flex flex-col h-full min-h-[600px]">
+                                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-surface-200 dark:border-slate-800 shadow-lg p-5 flex flex-col">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <File className="w-5 h-5 text-primary-500" />
@@ -229,17 +229,66 @@ const ATSChecker = () => {
                                         </div>
                                         <span className="text-xs text-surface-400 max-w-[150px] truncate" title={file?.name}>{file?.name}</span>
                                     </div>
-                                    <div className="flex-1 bg-surface-100 dark:bg-slate-950 rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 relative">
-                                        {fileUrl ? (
+
+                                    {/* PDF Preview */}
+                                    {fileUrl ? (
+                                        <div className="bg-surface-100 dark:bg-slate-950 rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 relative" style={{ height: "500px" }}>
                                             <iframe src={`${fileUrl}#toolbar=0`} className="absolute inset-0 w-full h-full" title="Resume Preview" />
-                                        ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-surface-400 dark:text-slate-500 p-6 text-center">
-                                                <FileText className="w-12 h-12 mb-3 opacity-50" />
-                                                <p className="text-sm font-medium">Preview not available for DOCX files.</p>
-                                                <p className="text-xs mt-1">Please use a PDF for inline preview.</p>
+                                        </div>
+                                    ) : (
+                                        /* DOCX — show file info instead of empty box */
+                                        <div className="bg-surface-50 dark:bg-slate-950 rounded-xl border border-surface-200 dark:border-slate-800 p-6 text-center">
+                                            <FileText className="w-10 h-10 mx-auto mb-2 text-surface-300 dark:text-slate-600" />
+                                            <p className="text-sm font-medium text-surface-500 dark:text-slate-400">DOCX Preview Not Available</p>
+                                            <p className="text-xs text-surface-400 dark:text-slate-500 mt-1">Upload a PDF for inline preview</p>
+                                        </div>
+                                    )}
+
+                                    {/* Quick Stats — fills space with useful info */}
+                                    {result && (
+                                        <div className="mt-4 space-y-3">
+                                            {/* Overall Score Badge */}
+                                            <div className={`flex items-center justify-between p-3 rounded-xl border ${
+                                                result.overallScore >= 80 ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20" :
+                                                result.overallScore >= 60 ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20" :
+                                                "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20"
+                                            }`}>
+                                                <span className="text-sm font-medium text-surface-700 dark:text-slate-300">ATS Score</span>
+                                                <span className={`text-lg font-bold ${
+                                                    result.overallScore >= 80 ? "text-green-600" :
+                                                    result.overallScore >= 60 ? "text-amber-600" : "text-red-600"
+                                                }`}>{result.overallScore}/100</span>
                                             </div>
-                                        )}
-                                    </div>
+
+                                            {/* Detected Skills */}
+                                            {result.topSkillsDetected?.length > 0 && (
+                                                <div className="p-3 rounded-xl bg-surface-50 dark:bg-slate-800/50 border border-surface-100 dark:border-slate-700">
+                                                    <p className="text-xs font-semibold text-surface-600 dark:text-slate-400 mb-2">Top Skills</p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {result.topSkillsDetected.slice(0, 6).map((skill, i) => (
+                                                            <span key={i} className="px-2 py-0.5 text-[10px] font-medium bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-500/20 rounded-full">{skill}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Sections Found */}
+                                            {result.detectedSections && (
+                                                <div className="p-3 rounded-xl bg-surface-50 dark:bg-slate-800/50 border border-surface-100 dark:border-slate-700">
+                                                    <p className="text-xs font-semibold text-surface-600 dark:text-slate-400 mb-2">Sections Found</p>
+                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                        {Object.entries(result.detectedSections).map(([key, val]) => (
+                                                            <div key={key} className={`flex items-center gap-1.5 text-[11px] ${val ? "text-green-600 dark:text-green-400" : "text-surface-400 dark:text-slate-500"}`}>
+                                                                {val ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                                                <span>{sectionLabels[key] || key}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <button onClick={reset} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-100 dark:bg-slate-800 border border-surface-200 dark:border-slate-700 rounded-xl text-surface-600 dark:text-slate-300 hover:bg-surface-200 dark:hover:bg-slate-700 transition-all font-medium text-sm">
                                         <RefreshCw className="w-4 h-4" /> Analyze Another
                                     </button>
