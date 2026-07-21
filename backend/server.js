@@ -389,6 +389,11 @@ const startServer = async () => {
     try {
         await connectDB();
         await connectRedis();
+
+        // Start background job worker (BullMQ)
+        const { startWorker } = require("./config/queue");
+        startWorker();
+
         server.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);
             logger.info(`CORS enabled for: ${FRONTEND_URL}`);
@@ -442,6 +447,14 @@ const gracefulShutdown = async (signal) => {
         }
     } catch (err) {
         logger.error("Error closing Redis:", err.message);
+    }
+
+    // 5. Close message queues
+    try {
+        const { closeQueues } = require("./config/queue");
+        await closeQueues();
+    } catch (err) {
+        logger.error("Error closing queues:", err.message);
     }
 
     logger.info("Graceful shutdown complete. Exiting.");
