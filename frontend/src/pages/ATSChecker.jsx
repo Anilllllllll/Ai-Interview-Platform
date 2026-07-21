@@ -4,7 +4,8 @@ import { atsAPI } from "../services/api";
 import {
     UploadCloud, FileText, CheckCircle, XCircle, AlertCircle,
     TrendingUp, Sparkles, Target, Zap, Award, ChevronRight,
-    RefreshCw, FileSearch, BarChart3, AlertTriangle, File
+    RefreshCw, FileSearch, BarChart3, AlertTriangle, File,
+    Maximize2, Download, X
 } from "lucide-react";
 
 /* ─── Circular Score Gauge ──────────────────────────────────── */
@@ -114,12 +115,15 @@ const ATSChecker = () => {
         }
     };
 
+    const [showModal, setShowModal] = useState(false);
+
     const reset = () => {
         setFile(null);
         if (fileUrl) URL.revokeObjectURL(fileUrl);
         setFileUrl(null);
         setResult(null);
         setError(null);
+        setShowModal(false);
     };
 
     const sectionLabels = {
@@ -230,31 +234,31 @@ const ATSChecker = () => {
                                         <span className="text-xs text-surface-400 max-w-[150px] truncate" title={file?.name}>{file?.name}</span>
                                     </div>
 
-                                    {/* PDF Preview — Desktop: iframe, Mobile: open button */}
+                                    {/* PDF Preview — Native <object> + <iframe> fallback + Fullscreen button */}
                                     {fileUrl ? (
-                                        <>
-                                            {/* Desktop: show inline PDF */}
-                                            <div className="hidden md:block rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 bg-white" style={{ aspectRatio: "8.5 / 11" }}>
-                                                <iframe src={`${fileUrl}#toolbar=0&view=FitH,0&page=1`} className="w-full h-full border-0" style={{ background: "#fff" }} title="Resume Preview" />
-                                            </div>
-                                            {/* Mobile: show open button (mobile can't render PDF in iframe) */}
-                                            <div className="md:hidden bg-surface-50 dark:bg-slate-950 rounded-xl border border-surface-200 dark:border-slate-800 p-5 text-center">
-                                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-lg">
-                                                    <FileText className="w-7 h-7 text-white" />
-                                                </div>
-                                                <p className="text-sm font-semibold text-surface-700 dark:text-slate-300 mb-1">{file?.name}</p>
-                                                <p className="text-xs text-surface-400 dark:text-slate-500 mb-4">PDF preview is available on desktop</p>
-                                                <a
-                                                    href={fileUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors shadow-md"
+                                        <div className="flex flex-col gap-2">
+                                            <div className="rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 bg-white h-[360px] sm:h-[480px] w-full">
+                                                <object
+                                                    data={`${fileUrl}#toolbar=0&view=FitH,0&page=1`}
+                                                    type="application/pdf"
+                                                    className="w-full h-full border-0"
                                                 >
-                                                    <FileSearch className="w-4 h-4" />
-                                                    Open Resume
-                                                </a>
+                                                    <iframe
+                                                        src={`${fileUrl}#toolbar=0&view=FitH,0&page=1`}
+                                                        className="w-full h-full border-0 bg-white"
+                                                        title="Resume Preview"
+                                                    />
+                                                </object>
                                             </div>
-                                        </>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowModal(true)}
+                                                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-xl text-xs font-semibold transition-colors border border-primary-200 dark:border-primary-500/20"
+                                            >
+                                                <Maximize2 className="w-3.5 h-3.5" />
+                                                Expand / Fullscreen Preview
+                                            </button>
+                                        </div>
                                     ) : (
                                         /* DOCX — show file info instead of empty box */
                                         <div className="bg-surface-50 dark:bg-slate-950 rounded-xl border border-surface-200 dark:border-slate-800 p-6 text-center">
@@ -418,6 +422,58 @@ const ATSChecker = () => {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Fullscreen PDF Modal for Mobile & Desktop */}
+            <AnimatePresence>
+                {showModal && fileUrl && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-3 sm:p-6"
+                    >
+                        <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[88vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-surface-200 dark:border-slate-800">
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-surface-200 dark:border-slate-800 bg-surface-50 dark:bg-slate-900">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <FileText className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                                    <span className="font-bold text-xs sm:text-sm text-surface-900 dark:text-slate-100 truncate max-w-[180px] sm:max-w-md">{file?.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href={fileUrl}
+                                        download={file?.name || "resume.pdf"}
+                                        className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+                                    >
+                                        <Download className="w-3.5 h-3.5" /> Download
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="p-1.5 text-surface-500 hover:text-surface-900 dark:text-slate-400 dark:hover:text-slate-100 rounded-xl hover:bg-surface-200 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            {/* Modal Body: Embedded PDF View */}
+                            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 p-2 overflow-hidden">
+                                <object
+                                    data={fileUrl}
+                                    type="application/pdf"
+                                    className="w-full h-full rounded-xl border-0"
+                                >
+                                    <iframe
+                                        src={`${fileUrl}#toolbar=0`}
+                                        className="w-full h-full rounded-xl border-0 bg-white"
+                                        title="Full PDF Preview"
+                                    />
+                                </object>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
