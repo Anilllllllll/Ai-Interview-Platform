@@ -64,8 +64,8 @@ IMPORTANT:
 
         const userPrompt = `Analyze this resume for ATS compatibility${jobDescription ? ` for this target role: ${targetRole}` : ""}.
 
---- BEGIN RESUME TEXT ---
-${resumeText.substring(0, 8000)}
+--- BEGIN RESUME TEXT (${resumeText.trim().split(/\s+/).length} words, analyzed at ${new Date().toISOString()}) ---
+${resumeText.substring(0, 12000)}
 --- END RESUME TEXT ---
 ${jobDescription ? `
 --- JOB DESCRIPTION (compare resume against this) ---
@@ -129,8 +129,8 @@ Return ONLY a valid JSON object (no markdown, no code blocks):
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
             ],
-            temperature: 0.2,  // Lower = more consistent and precise
-            max_tokens: 2000,  // More tokens for detailed analysis
+            temperature: 0.4,  // Balanced: precise but varied between different resumes
+            max_tokens: 2500,  // Enough tokens for detailed, resume-specific analysis
         });
 
         const raw = response.choices[0]?.message?.content?.trim() || "{}";
