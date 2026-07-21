@@ -47,38 +47,49 @@ const analyzeResume = async (resumeText) => {
         throw new Error("Resume text is too short or empty. Please upload a valid resume.");
     }
 
-    const systemPrompt = `You are an expert resume analyst. Analyze the given resume text and extract structured information. Be accurate and only extract information that is explicitly mentioned.`;
+    const systemPrompt = `You are an expert resume analyst and technical recruiter with 15+ years of experience. Your job is to extract ACCURATE, SPECIFIC information from resumes.
 
-    const userMessage = `Analyze this resume and extract structured data.
+RULES:
+- Only extract information that is EXPLICITLY mentioned in the resume
+- Do NOT invent or assume skills, projects, or experience
+- If a section is missing, return an empty array or "Not mentioned"
+- Be precise with technology names (e.g., "React.js" not just "frontend")
+- For experience level, calculate based on actual dates mentioned
+- Each project MUST have a real description from the resume, not a generic one`;
+
+    const userMessage = `Extract structured data from this resume. Be accurate and specific.
 
 --- BEGIN RESUME TEXT ---
-${resumeText.substring(0, 8000)}
+${resumeText.substring(0, 10000)}
 --- END RESUME TEXT ---
 
-Return ONLY valid JSON in this exact format:
+Return ONLY valid JSON (no markdown, no code blocks):
 {
-  "primarySkills": ["skill1", "skill2", "skill3"],
-  "techStack": ["tech1", "tech2", "tech3"],
+  "primarySkills": ["<actual skills from resume — list ALL mentioned>"],
+  "techStack": ["<specific technologies/frameworks/tools mentioned>"],
   "projects": [
     {
-      "name": "Project Name",
-      "description": "Brief description",
-      "technologies": ["tech1", "tech2"]
+      "name": "<actual project name from resume>",
+      "description": "<actual description from resume, not made up>",
+      "technologies": ["<techs used in this specific project>"],
+      "impact": "<any metrics or outcomes mentioned>"
     }
   ],
-  "experienceLevel": "Fresher / Junior (0-2 years) / Mid-level (2-4 years) / Senior (5+ years)",
-  "education": "Degree and institution",
+  "experienceLevel": "<calculate from dates: Fresher / Junior (0-2 years) / Mid-level (2-4 years) / Senior (5+ years)>",
+  "totalYearsOfExperience": <number or 0 if fresher>,
+  "education": "<degree, field, institution, year if mentioned>",
   "workExperience": [
     {
-      "role": "Job Title",
-      "company": "Company Name",
-      "duration": "Duration"
+      "role": "<exact job title>",
+      "company": "<company name>",
+      "duration": "<start - end dates if mentioned>",
+      "highlights": ["<key achievement or responsibility>"]
     }
   ],
-  "summary": "A 2-3 sentence professional summary of the candidate"
-}
-
-Return ONLY valid JSON. No markdown, no code blocks, no extra text.`;
+  "certifications": ["<any certifications mentioned>"],
+  "achievements": ["<awards, publications, notable accomplishments>"],
+  "summary": "<3-4 sentence professional summary based on ACTUAL resume content. Reference specific skills and experience.>"
+}`;
 
     try {
         const completion = await openai.chat.completions.create({
@@ -87,6 +98,8 @@ Return ONLY valid JSON. No markdown, no code blocks, no extra text.`;
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage },
             ],
+            temperature: 0.2,   // Low temperature for consistent, accurate extraction
+            max_tokens: 1500,   // More tokens for detailed analysis
         });
 
         const content = completion.choices[0].message.content;
