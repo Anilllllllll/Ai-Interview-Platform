@@ -232,8 +232,8 @@ const ATSChecker = () => {
 
                                     {/* PDF Preview */}
                                     {fileUrl ? (
-                                        <div className="bg-surface-100 dark:bg-slate-950 rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 relative" style={{ height: "500px" }}>
-                                            <iframe src={`${fileUrl}#toolbar=0`} className="absolute inset-0 w-full h-full" title="Resume Preview" />
+                                        <div className="rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 relative bg-white dark:bg-white" style={{ height: "auto", minHeight: "300px", maxHeight: "500px" }}>
+                                            <iframe src={`${fileUrl}#toolbar=0&view=FitH`} className="w-full border-0 bg-white" style={{ height: "500px" }} title="Resume Preview" />
                                         </div>
                                     ) : (
                                         /* DOCX — show file info instead of empty box */
