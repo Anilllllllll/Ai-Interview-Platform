@@ -96,15 +96,20 @@ jobs:
             # Pull latest code
             git pull origin main
 
+            # Install backend dependencies (picks up new packages like BullMQ, helmet)
+            cd backend
+            npm install --production
+            cd ..
+
             # Build frontend
             cd frontend
             npm install
             VITE_API_URL="" npm run build
             cd ..
 
-            # Rebuild and restart containers
-            docker compose down
-            docker compose up --build -d
+            # Rebuild and restart containers (using SSL compose for production)
+            docker compose -f docker-compose.ssl.yml down
+            docker compose -f docker-compose.ssl.yml up --build -d
 
             # Clean up old Docker images
             docker image prune -f
