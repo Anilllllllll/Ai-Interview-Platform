@@ -19,9 +19,7 @@ const requestLogger = require("./middleware/requestLogger");
 const logger = require("./utils/logger");
 
 const authRoutes = require("./routes/auth");
-const interviewRoutes = require("./routes/interview");
-const uploadRoutes = require("./routes/upload");
-const atsRoutes = require("./routes/ats");
+const v1Router = require("./routes/v1");
 
 const InterviewSession = require("./models/InterviewSession");
 const User = require("./models/User");
@@ -131,17 +129,30 @@ if (!fs.existsSync(logsDir)) {
 // Auth: strict (5 attempts/15 min) — prevents brute force
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
+app.use("/api/v1/auth/login", authLimiter);
+app.use("/api/v1/auth/register", authLimiter);
 
 // AI & Upload: moderate (20/hour) — prevents API cost abuse
 app.use("/api/interview", aiLimiter);
 app.use("/api/upload", aiLimiter);
 app.use("/api/ats", aiLimiter);
+app.use("/api/v1/interview", aiLimiter);
+app.use("/api/v1/upload", aiLimiter);
+app.use("/api/v1/ats", aiLimiter);
 
-// Route handlers
-app.use("/api/auth", authRoutes);
-app.use("/api/interview", interviewRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/ats", atsRoutes);
+// ─────────────────────────────────────────
+// API VERSIONING
+// ─────────────────────────────────────────
+// /api/v1/...  → versioned (recommended for new clients)
+// /api/...     → backward compatible (existing clients still work)
+//
+// When you need breaking changes:
+//   1. Create routes/v2.js with new handlers
+//   2. Mount: app.use("/api/v2", v2Router)
+//   3. Keep v1 running — don't break existing clients
+//   4. Deprecate v1 after migration period
+app.use("/api/v1", v1Router);
+app.use("/api", v1Router);  // backward compatible
 
 // --- Enhanced Health Check ---
 // Returns system metrics for monitoring tools (UptimeRobot, AWS CloudWatch)
