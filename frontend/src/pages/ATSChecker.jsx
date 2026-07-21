@@ -230,11 +230,31 @@ const ATSChecker = () => {
                                         <span className="text-xs text-surface-400 max-w-[150px] truncate" title={file?.name}>{file?.name}</span>
                                     </div>
 
-                                    {/* PDF Preview */}
+                                    {/* PDF Preview — Desktop: iframe, Mobile: open button */}
                                     {fileUrl ? (
-                                        <div className="rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 bg-white" style={{ aspectRatio: "8.5 / 11" }}>
-                                            <iframe src={`${fileUrl}#toolbar=0&view=FitH,0&page=1`} className="w-full h-full border-0" style={{ background: "#fff" }} title="Resume Preview" />
-                                        </div>
+                                        <>
+                                            {/* Desktop: show inline PDF */}
+                                            <div className="hidden md:block rounded-xl overflow-hidden border border-surface-200 dark:border-slate-800 bg-white" style={{ aspectRatio: "8.5 / 11" }}>
+                                                <iframe src={`${fileUrl}#toolbar=0&view=FitH,0&page=1`} className="w-full h-full border-0" style={{ background: "#fff" }} title="Resume Preview" />
+                                            </div>
+                                            {/* Mobile: show open button (mobile can't render PDF in iframe) */}
+                                            <div className="md:hidden bg-surface-50 dark:bg-slate-950 rounded-xl border border-surface-200 dark:border-slate-800 p-5 text-center">
+                                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-lg">
+                                                    <FileText className="w-7 h-7 text-white" />
+                                                </div>
+                                                <p className="text-sm font-semibold text-surface-700 dark:text-slate-300 mb-1">{file?.name}</p>
+                                                <p className="text-xs text-surface-400 dark:text-slate-500 mb-4">PDF preview is available on desktop</p>
+                                                <a
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors shadow-md"
+                                                >
+                                                    <FileSearch className="w-4 h-4" />
+                                                    Open Resume
+                                                </a>
+                                            </div>
+                                        </>
                                     ) : (
                                         /* DOCX — show file info instead of empty box */
                                         <div className="bg-surface-50 dark:bg-slate-950 rounded-xl border border-surface-200 dark:border-slate-800 p-6 text-center">
