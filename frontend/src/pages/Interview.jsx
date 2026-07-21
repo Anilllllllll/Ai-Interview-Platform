@@ -558,91 +558,108 @@ const Interview = () => {
 
                                     {/* Resume analyzed successfully */}
                                     {resumeAnalysis && !resumeUploading && (
-                                        <div className="relative border-2 border-emerald-200 rounded-xl p-5 bg-emerald-50/30">
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
-                                                        <CheckCircle2 className="w-5 h-5 text-white" />
+                                        <div className="relative border-2 border-emerald-200 rounded-xl p-4 bg-emerald-50/30">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-md">
+                                                        <CheckCircle2 className="w-4 h-4 text-white" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-semibold text-emerald-700">Resume Analyzed Successfully</p>
-                                                        <p className="text-xs text-surface-400 flex items-center space-x-1">
-                                                            <FileText className="w-3 h-3" />
-                                                            <span>{resumeFile?.name}</span>
+                                                        <p className="text-xs font-semibold text-emerald-700">Resume Analyzed</p>
+                                                        <p className="text-[10px] text-surface-400 flex items-center space-x-1">
+                                                            <FileText className="w-2.5 h-2.5" />
+                                                            <span className="truncate max-w-[140px]">{resumeFile?.name}</span>
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={clearResume}
-                                                    className="p-1.5 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-500 transition-colors"
+                                                    className="p-1 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-500 transition-colors"
                                                     title="Remove resume"
                                                 >
-                                                    <X className="w-4 h-4" />
+                                                    <X className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
 
-                                            {/* Analysis preview */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {/* Summary */}
+                                            {resumeAnalysis.summary && (
+                                                <p className="text-[11px] text-surface-600 mb-3 leading-relaxed italic">
+                                                    "{resumeAnalysis.summary}"
+                                                </p>
+                                            )}
+
+                                            {/* Compact analysis grid */}
+                                            <div className="space-y-2">
                                                 {resumeAnalysis.primarySkills?.length > 0 && (
-                                                    <div className="p-3 rounded-lg bg-white/70 border border-emerald-100">
-                                                        <div className="flex items-center space-x-1.5 mb-2">
-                                                            <Code2 className="w-3.5 h-3.5 text-emerald-600" />
-                                                            <span className="text-xs font-semibold text-surface-700">Skills</span>
+                                                    <div className="p-2 rounded-lg bg-white/70 border border-emerald-100">
+                                                        <div className="flex items-center space-x-1 mb-1.5">
+                                                            <Code2 className="w-3 h-3 text-emerald-600" />
+                                                            <span className="text-[10px] font-semibold text-surface-600">Skills</span>
                                                         </div>
                                                         <div className="flex flex-wrap gap-1">
-                                                            {resumeAnalysis.primarySkills.slice(0, 6).map((skill, i) => (
-                                                                <span key={i} className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-medium text-emerald-700">
+                                                            {resumeAnalysis.primarySkills.slice(0, 8).map((skill, i) => (
+                                                                <span key={i} className="px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[9px] font-medium text-emerald-700">
                                                                     {skill}
                                                                 </span>
                                                             ))}
-                                                            {resumeAnalysis.primarySkills.length > 6 && (
-                                                                <span className="px-2 py-0.5 rounded-full bg-surface-100 text-[10px] font-medium text-surface-500">
-                                                                    +{resumeAnalysis.primarySkills.length - 6} more
+                                                            {resumeAnalysis.primarySkills.length > 8 && (
+                                                                <span className="px-1.5 py-0.5 rounded-full bg-surface-100 text-[9px] font-medium text-surface-500">
+                                                                    +{resumeAnalysis.primarySkills.length - 8}
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </div>
                                                 )}
 
-                                                {resumeAnalysis.projects?.length > 0 && (
-                                                    <div className="p-3 rounded-lg bg-white/70 border border-emerald-100">
-                                                        <div className="flex items-center space-x-1.5 mb-2">
-                                                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                                                            <span className="text-xs font-semibold text-surface-700">Projects</span>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            {resumeAnalysis.projects.slice(0, 3).map((proj, i) => (
-                                                                <p key={i} className="text-[11px] text-surface-600 truncate">• {proj.name}</p>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
                                                 {resumeAnalysis.techStack?.length > 0 && (
-                                                    <div className="p-3 rounded-lg bg-white/70 border border-emerald-100">
-                                                        <div className="flex items-center space-x-1.5 mb-2">
-                                                            <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
-                                                            <span className="text-xs font-semibold text-surface-700">Tech Stack</span>
+                                                    <div className="p-2 rounded-lg bg-white/70 border border-emerald-100">
+                                                        <div className="flex items-center space-x-1 mb-1.5">
+                                                            <Briefcase className="w-3 h-3 text-emerald-600" />
+                                                            <span className="text-[10px] font-semibold text-surface-600">Tech Stack</span>
                                                         </div>
                                                         <div className="flex flex-wrap gap-1">
-                                                            {resumeAnalysis.techStack.slice(0, 5).map((tech, i) => (
-                                                                <span key={i} className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] font-medium text-blue-700">
+                                                            {resumeAnalysis.techStack.slice(0, 6).map((tech, i) => (
+                                                                <span key={i} className="px-1.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[9px] font-medium text-blue-700">
                                                                     {tech}
                                                                 </span>
                                                             ))}
+                                                            {resumeAnalysis.techStack.length > 6 && (
+                                                                <span className="px-1.5 py-0.5 rounded-full bg-surface-100 text-[9px] font-medium text-surface-500">
+                                                                    +{resumeAnalysis.techStack.length - 6}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
 
-                                                {resumeAnalysis.experienceLevel && (
-                                                    <div className="p-3 rounded-lg bg-white/70 border border-emerald-100">
-                                                        <div className="flex items-center space-x-1.5 mb-2">
-                                                            <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
-                                                            <span className="text-xs font-semibold text-surface-700">Experience</span>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {resumeAnalysis.projects?.length > 0 && (
+                                                        <div className="p-2 rounded-lg bg-white/70 border border-emerald-100">
+                                                            <div className="flex items-center space-x-1 mb-1">
+                                                                <Sparkles className="w-3 h-3 text-emerald-600" />
+                                                                <span className="text-[10px] font-semibold text-surface-600">Projects</span>
+                                                            </div>
+                                                            <div className="space-y-0.5">
+                                                                {resumeAnalysis.projects.slice(0, 3).map((proj, i) => (
+                                                                    <p key={i} className="text-[10px] text-surface-600 truncate">• {proj.name}</p>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                        <p className="text-xs text-surface-600">{resumeAnalysis.experienceLevel}</p>
-                                                    </div>
-                                                )}
+                                                    )}
+
+                                                    {resumeAnalysis.experienceLevel && (
+                                                        <div className="p-2 rounded-lg bg-white/70 border border-emerald-100">
+                                                            <div className="flex items-center space-x-1 mb-1">
+                                                                <GraduationCap className="w-3 h-3 text-emerald-600" />
+                                                                <span className="text-[10px] font-semibold text-surface-600">Level</span>
+                                                            </div>
+                                                            <p className="text-[10px] text-surface-600">{resumeAnalysis.experienceLevel}</p>
+                                                            {resumeAnalysis.education && (
+                                                                <p className="text-[9px] text-surface-400 mt-0.5 truncate">{resumeAnalysis.education}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
