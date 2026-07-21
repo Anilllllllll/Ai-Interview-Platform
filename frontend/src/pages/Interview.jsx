@@ -121,6 +121,19 @@ const Interview = () => {
 
 
     // ── Text-to-Speech ─────────────────────────────────────────────
+    // Preload voices on mount (Chrome loads them asynchronously)
+    useEffect(() => {
+        const loadVoices = () => {
+            const voices = window.speechSynthesis?.getVoices();
+            if (voices?.length) {
+                console.log("[TTS] Loaded", voices.length, "voices");
+            }
+        };
+        loadVoices();
+        window.speechSynthesis?.addEventListener("voiceschanged", loadVoices);
+        return () => window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
+    }, []);
+
     const ttsTimerRef = useRef(null);
     const ttsResumeIntervalRef = useRef(null);
 
@@ -136,9 +149,44 @@ const Interview = () => {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "en-US";
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.05;
         utterance.volume = 1;
+
+        // Select the best available voice for a natural interview feel
+        // Priority: Google voices > Microsoft voices > default
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoices = [
+            // Natural-sounding voices (ranked by quality)
+            "Google UK English Female",
+            "Google UK English Male",
+            "Google US English",
+            "Microsoft Zira",
+            "Microsoft David",
+            "Microsoft Mark",
+            "Samantha",           // macOS
+            "Karen",              // macOS Australian
+            "Daniel",             // macOS British
+            "Alex",               // macOS
+        ];
+
+        let selectedVoice = null;
+        for (const name of preferredVoices) {
+            selectedVoice = voices.find(v => v.name.includes(name));
+            if (selectedVoice) break;
+        }
+
+        // Fallback: pick any English voice that isn't the default robotic one
+        if (!selectedVoice) {
+            selectedVoice = voices.find(v =>
+                v.lang.startsWith("en") && !v.localService
+            ) || voices.find(v => v.lang.startsWith("en"));
+        }
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+            console.log("[TTS] Using voice:", selectedVoice.name);
+        }
 
         const cleanup = () => {
             if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
