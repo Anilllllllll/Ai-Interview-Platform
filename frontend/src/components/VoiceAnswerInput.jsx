@@ -32,7 +32,27 @@ const VoiceAnswerInput = ({
     useEffect(() => { disabledRef.current = disabled; }, [disabled]);
 
     useEffect(() => {
-        return () => { clearSilenceTimer(); clearAutoStartTimer(); destroyRecognition(); };
+        // Recovery handler: if mic was listening but got killed by volume/focus change
+        const handleVisibilityRecovery = () => {
+            if (document.visibilityState === "visible" && statusRef.current === "listening" && !recognitionRef.current) {
+                console.log("[Voice] Recovering mic after visibility change");
+                setTimeout(() => {
+                    if (statusRef.current === "listening" || statusRef.current === "idle") {
+                        if (!disabledRef.current && !isStoppingRef.current) {
+                            startListening();
+                        }
+                    }
+                }, 300);
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityRecovery);
+
+        return () => {
+            clearSilenceTimer();
+            clearAutoStartTimer();
+            destroyRecognition();
+            document.removeEventListener("visibilitychange", handleVisibilityRecovery);
+        };
     }, []);
 
     const clearSilenceTimer = () => {

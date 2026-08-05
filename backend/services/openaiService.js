@@ -75,7 +75,7 @@ const trimTranscript = (transcript) => {
     }));
 };
 
-const callOpenAIWithRetry = async (modelName, systemPrompt, history, userMessage, retries = MAX_RETRIES) => {
+const callOpenAIWithRetry = async (modelName, systemPrompt, history, userMessage, { retries = MAX_RETRIES, temperature = 0.7, max_tokens } = {}) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const messages = [
@@ -84,10 +84,14 @@ const callOpenAIWithRetry = async (modelName, systemPrompt, history, userMessage
                 { role: "user", content: userMessage },
             ];
 
-            const completion = await openai.chat.completions.create({
+            const params = {
                 model: modelName,
-                messages: messages,
-            });
+                messages,
+                temperature,
+            };
+            if (max_tokens) params.max_tokens = max_tokens;
+
+            const completion = await openai.chat.completions.create(params);
 
             return completion.choices[0].message.content;
         } catch (error) {
@@ -169,29 +173,42 @@ const generateNextQuestion = async ({
 
     const history = trimTranscript(transcript);
 
-    let userMessage;
-    if (isResumeMode) {
-        userMessage = `Based on the candidate's previous answer, ask the next interview question. You may ask a follow-up question if the previous answer warrants deeper exploration, or move to a new topic FROM THEIR RESUME. Remember:
+    // Get the last candidate answer for relevance analysis
+    const lastAnswer = transcript?.filter(t => t.role === "user").slice(-1)[0]?.content || "";
+    const lastQuestion = transcript?.filter(t => t.role === "assistant").slice(-1)[0]?.content || "";
+
+    const resumeExtra = isResumeMode
+        ? `\n- This is a RESUME-BASED interview — ask about their specific projects, technologies, and experience`
+        : "";
+
+    const userMessage = `FIRST, evaluate the candidate's LAST answer for relevance.
+
+Last question asked: "${lastQuestion.substring(0, 500)}"
+Candidate's answer: "${lastAnswer.substring(0, 1000)}"
+
+STEP 1: Start your response with EXACTLY ONE of these tags on its own line:
+[RELEVANT] — if the answer addresses the question with technical content
+[PARTIAL] — if the answer is vaguely related but lacks substance or depth
+[OFF_TOPIC] — if the answer is completely unrelated to the question asked
+[EMPTY] — if the answer is blank, gibberish, or just filler words
+
+STEP 2: On the next line, ask your next interview question.
+
+Rules:
 - Difficulty: ${difficulty}
 - Interview type: ${interviewType}
-- Role: ${role}
-- This is a RESUME-BASED interview — ask about their specific projects, technologies, and experience
+- Role: ${role}${resumeExtra}
 - Ask ONE question only
-- Do NOT provide feedback yet`;
-    } else {
-        userMessage = `Based on the candidate's previous answer, ask the next interview question. You may ask a follow-up question if the previous answer warrants deeper exploration, or move to a new topic. Remember:
-- Difficulty: ${difficulty}
-- Interview type: ${interviewType}
-- Role: ${role}
-- Ask ONE question only
-- Do NOT provide feedback yet`;
-    }
+- Do NOT provide feedback or hints about whether their answer was correct
+- If the candidate gave an off-topic or empty answer, DO NOT acknowledge it — just move to the next question professionally
+- Keep your response short: just the tag line + the question`;
 
     const content = await callOpenAIWithRetry(
         QUESTION_MODEL,
         systemPrompt,
         history,
-        userMessage
+        userMessage,
+        { temperature: 0.5 }
     );
 
     return content;
@@ -209,15 +226,33 @@ const generateFeedback = async ({
 }) => {
     const isResumeMode = resumeData?.resumeAnalysis;
 
-    const systemPrompt = `You are a senior interviewer evaluating a candidate for the ${specialization} role in the ${domain} domain. Provide detailed, structured feedback based on the candidate's spoken answers AND their body language / gesture analysis data.`;
+    const systemPrompt = `You are a BRUTALLY HONEST senior technical interviewer evaluating a candidate for the ${specialization} role in the ${domain} domain.
 
-    // Build text transcript
+You NEVER inflate scores. You evaluate ONLY what the candidate ACTUALLY said, not what they COULD have said.
+If a candidate gave wrong, irrelevant, or vague answers, their scores MUST reflect that.
+You are known for accurate, realistic evaluations that hiring managers trust.`;
+
+    // Build text transcript with relevance tags
     let transcriptText = "";
+    let relevantCount = 0;
+    let offTopicCount = 0;
+    let emptyCount = 0;
+    let partialCount = 0;
+
     if (transcript && transcript.length > 0) {
         transcriptText = transcript
             .map((t) => {
                 const speaker = t.role === "assistant" ? "Interviewer" : "Candidate";
-                return `${speaker}: ${t.content}`;
+                let line = `${speaker}: ${t.content}`;
+                // Count relevance tags if present in metadata
+                if (t.role === "user" && t.relevanceTag) {
+                    line = `${speaker} [${t.relevanceTag}]: ${t.content}`;
+                    if (t.relevanceTag === "RELEVANT") relevantCount++;
+                    else if (t.relevanceTag === "OFF_TOPIC") offTopicCount++;
+                    else if (t.relevanceTag === "EMPTY") emptyCount++;
+                    else if (t.relevanceTag === "PARTIAL") partialCount++;
+                }
+                return line;
             })
             .join("\n\n");
     } else {
@@ -254,7 +289,7 @@ Experience Level: ${ra.experienceLevel || "N/A"}
 7. Resume Understanding (0-100)
    - How well the candidate explained their own projects and experience
    - Accuracy and depth of knowledge about their listed skills
-   - Score Guide: 90-100=Deep understanding, 70-89=Good grasp, 50-69=Surface level, 30-49=Struggled, 0-29=Could not explain own resume (Score 0 if no resume questions were answered)`;
+   - Score 0 if no resume questions were answered or if answers were irrelevant`;
 
         resumeJsonField = `\n  "resumeUnderstanding": <number>,`;
         paramCount = "7";
@@ -264,64 +299,84 @@ Experience Level: ${ra.experienceLevel || "N/A"}
     const candidateAnswers = transcript?.filter(t => t.role === "user") || [];
     const totalAnswerLength = candidateAnswers.reduce((acc, curr) => acc + (curr.content?.length || 0), 0);
     const isAborted = candidateAnswers.length === 0 || totalAnswerLength < 20;
+    const totalQuestions = transcript?.filter(t => t.role === "assistant").length || 0;
 
-    const strictModeDirective = isAborted 
-        ? "\n[STRICT EVALUATION MODE: The candidate provided NO substantial answers. You MUST score all technical and domain categories as 0. Do NOT hypothesize or assume knowledge.]\n" 
-        : "";
+    // Build answer quality summary for the AI
+    const answerQualitySummary = `
+--- ANSWER QUALITY ANALYSIS (computed by system) ---
+Total questions asked: ${totalQuestions}
+Total answers given: ${candidateAnswers.length}
+Relevant answers: ${relevantCount}
+Partially relevant answers: ${partialCount}
+Off-topic/irrelevant answers: ${offTopicCount}
+Empty/gibberish answers: ${emptyCount}
+Total answer text length: ${totalAnswerLength} characters
+Average answer length: ${candidateAnswers.length > 0 ? Math.round(totalAnswerLength / candidateAnswers.length) : 0} characters
+--- END ANSWER QUALITY ANALYSIS ---`;
 
-    const feedbackPrompt = `The interview is now complete. Evaluate the candidate based on their spoken answers AND their gesture/body language data. ${strictModeDirective}
+    let strictDirective = "";
+    if (isAborted) {
+        strictDirective = "\n⚠️ ABORT MODE: The candidate provided NO substantial answers. ALL technical scores MUST be 0. detailedFeedback MUST start with: 'This interview was terminated prematurely.'\n";
+    } else if (offTopicCount + emptyCount >= Math.ceil(candidateAnswers.length * 0.5)) {
+        strictDirective = `\n⚠️ LOW QUALITY MODE: ${offTopicCount + emptyCount} out of ${candidateAnswers.length} answers were off-topic or empty. Technical Skills, Problem Solving, and Domain Knowledge scores MUST be below 30. Do NOT give credit for irrelevant answers.\n`;
+    } else if (offTopicCount + emptyCount >= 2) {
+        strictDirective = `\n⚠️ MIXED QUALITY: ${offTopicCount + emptyCount} answers were off-topic or empty. Cap Technical Skills at 50 max unless the relevant answers were exceptionally strong.\n`;
+    }
+
+    const feedbackPrompt = `The interview is now complete. Evaluate the candidate STRICTLY based on their ACTUAL spoken answers and gesture data.${strictDirective}
 
 --- BEGIN INTERVIEW TRANSCRIPT ---
 ${transcriptText}
 --- END INTERVIEW TRANSCRIPT ---
+
+${answerQualitySummary}
 
 --- BEGIN GESTURE ANALYSIS DATA ---
 ${gestureText}
 --- END GESTURE ANALYSIS DATA ---
 ${resumeSection}
 
-Evaluate the candidate on these ${paramCount} parameters:
+SCORING RULES (you MUST follow these strictly):
 
 1. Technical Skills (0-100)
-   - Correctness of technical concepts
-   - Depth of knowledge and accuracy of explanations
-   - Score Guide: 90-100=Excellent expert-level, 70-89=Strong with minor gaps, 50-69=Average, 30-49=Weak, 0-29=Very poor
-   - CRITICAL: Give 0 if no technical questions were answered. Do NOT give points for "potential".
+   90-100: Expert — explained complex concepts accurately with depth and examples
+   70-89: Strong — correct answers with minor gaps, showed real understanding
+   50-69: Average — some correct answers but shallow or incomplete explanations
+   30-49: Weak — mostly incorrect or vague answers, fundamental gaps
+   10-29: Very poor — almost all answers wrong or irrelevant
+   0-9: No demonstration — did not answer OR gave completely unrelated responses
 
 2. Communication Skills (0-100)
-   - Clarity of speech, fluency, articulation
-   - Confidence in speaking
-   - If candidate said nothing, score 0.
+   High: Clear, articulate, well-structured responses
+   Low: Incoherent, rambling, or did not speak
+   0 if candidate said nothing
 
 3. Problem Solving (0-100)
-   - Logical and structured thinking
-   - Reasoning ability and approach to problems
-   - Give 0 if no problems were attempted.
+   Evaluate ONLY if the candidate attempted to solve problems
+   0 if no problems were attempted or if answers showed no logical reasoning
 
 4. Domain Knowledge (0-100)
-   - Knowledge of relevant technologies, frameworks, tools
-   - Familiarity with real-world usage
-   - Give 0 if no domain-specific questions were answered.
+   Based on specific knowledge of ${domain} technologies and practices
+   0 if the candidate demonstrated no domain-relevant knowledge
 
 5. Confidence Score (0-100)
-   - Based on eye contact score, posture score, speaking confidence, hesitation level
-   - Higher eye contact + stable posture = higher score
-   - If candidate was silent/aborted, score based on visual confidence only, but keep it low (<30).
+   Based on gesture data: eye contact + posture + speaking confidence
+   Cap at 30 if candidate was mostly silent
 
 6. Professional Presence (0-100)
-   - Based on facial expressions, engagement level, attentiveness, body language
-   - If candidate aborted, Professional Presence should be very low.
+   Based on facial expressions, engagement, attentiveness
+   Cap at 20 if candidate aborted early
 ${resumeParam}
 
-IMPORTANT INSTRUCTIONS:
-- Evaluate ONLY based on the provided evidence in the transcript.
-- If the candidate provided no answers or very short/empty answers, YOU MUST SCORE Technical Skills, Problem Solving, Domain Knowledge, and Resume Understanding as 0.
-- Do NOT hallucinate skills or attribute knowledge that was not explicitly demonstrated.
-- Be extremely critical of incomplete interviews. 
-- If the interview was aborted early (0-2 questions), the "detailedFeedback" MUST start with: "This interview was terminated prematurely or the candidate provided insufficient responses for a full evaluation."
-- Be fair but realistic. "Average" (50+) requires actual correct answers.
+🚨 ANTI-INFLATION RULES (CRITICAL):
+- A score above 60 means the candidate gave CORRECT, SUBSTANTIVE answers. Do not give 60+ for effort alone.
+- If the candidate spoke about something UNRELATED to the question, that answer scores 0 for technical evaluation.
+- "I don't know" is better than a wrong answer — at least it shows honesty. But it still scores low.
+- Do NOT give high scores because the transcript is long. Length ≠ quality.
+- Read EACH answer and check: did it actually address what was asked? Was it correct?
+- If most answers were off-topic, the overall score should be below 30.
 
-Overall Score = average of all ${paramCount} scores (round to nearest integer)
+Overall Score = weighted average: Technical(30%) + Communication(15%) + ProblemSolving(20%) + DomainKnowledge(20%) + Confidence(7.5%) + ProfessionalPresence(7.5%)${isResumeMode ? " + ResumeUnderstanding adjusts Technical by ±10%" : ""}
 
 Interview details:
 - Role: ${role}
@@ -330,7 +385,7 @@ Interview details:
 - Difficulty: ${difficulty}
 - Type: ${interviewType}${isResumeMode ? "\n- Mode: Resume-Based Interview" : ""}
 
-Return ONLY valid JSON in this exact format:
+Return ONLY valid JSON (no markdown, no code blocks):
 {
   "overallScore": <number>,
   "technicalSkills": <number>,
@@ -339,18 +394,17 @@ Return ONLY valid JSON in this exact format:
   "domainKnowledge": <number>,
   "confidenceScore": <number>,
   "professionalPresence": <number>,${resumeJsonField}
-  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-  "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
-  "detailedFeedback": "<detailed professional feedback paragraph including technical performance, communication, confidence, and body language>"
-}
-
-Return ONLY valid JSON. No markdown, no code blocks, no extra text.`;
+  "strengths": ["<specific strength from transcript>", "<strength 2>", "<strength 3>"],
+  "improvements": ["<specific improvement based on actual weak answers>", "<improvement 2>", "<improvement 3>"],
+  "detailedFeedback": "<2-3 paragraph detailed feedback referencing SPECIFIC answers the candidate gave, what was correct, what was wrong, and actionable advice>"
+}`;
 
     const content = await callOpenAIWithRetry(
         FEEDBACK_MODEL,
         systemPrompt,
         [],
-        feedbackPrompt
+        feedbackPrompt,
+        { temperature: 0.3, max_tokens: 2000 }
     );
 
     try {
@@ -358,7 +412,38 @@ Return ONLY valid JSON. No markdown, no code blocks, no extra text.`;
             .replace(/```json\n?/g, "")
             .replace(/```\n?/g, "")
             .trim();
-        return JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+
+        // Server-side score validation: clamp impossible scores
+        if (isAborted) {
+            parsed.technicalSkills = 0;
+            parsed.problemSolving = 0;
+            parsed.domainKnowledge = 0;
+            parsed.communication = Math.min(parsed.communication || 0, 10);
+            if (parsed.resumeUnderstanding !== undefined) parsed.resumeUnderstanding = 0;
+        }
+
+        // Recalculate overall score with weighted formula
+        const weights = {
+            technicalSkills: 0.30,
+            communication: 0.15,
+            problemSolving: 0.20,
+            domainKnowledge: 0.20,
+            confidenceScore: 0.075,
+            professionalPresence: 0.075,
+        };
+        if (isResumeMode) {
+            weights.technicalSkills = 0.25;
+            weights.resumeUnderstanding = 0.05;
+        }
+
+        let weightedSum = 0;
+        for (const [key, weight] of Object.entries(weights)) {
+            weightedSum += (parsed[key] || 0) * weight;
+        }
+        parsed.overallScore = Math.round(weightedSum);
+
+        return parsed;
     } catch (parseError) {
         logger.error(`Failed to parse feedback JSON: ${parseError.message}`);
         return {

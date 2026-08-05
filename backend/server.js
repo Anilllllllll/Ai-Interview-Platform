@@ -299,15 +299,42 @@ io.on("connection", (socket) => {
             session.transcript.push({ role: "user", content: answer });
             await session.save();
 
-            const nextQuestion = await openaiService.generateNextQuestion({
-                domain: session.domain,
-                specialization: session.specialization,
-                role: session.role,
-                difficulty: session.difficulty,
-                interviewType: session.interviewType,
-                transcript: session.transcript,
-                resumeData: session.interviewMode === "resume" ? session.resumeData : null,
-            });
+            let nextQuestion;
+            let relevanceTag = null;
+
+            try {
+                const rawResponse = await openaiService.generateNextQuestion({
+                    domain: session.domain,
+                    specialization: session.specialization,
+                    role: session.role,
+                    difficulty: session.difficulty,
+                    interviewType: session.interviewType,
+                    transcript: session.transcript,
+                    resumeData: session.interviewMode === "resume" ? session.resumeData : null,
+                });
+
+                // Parse relevance tag from AI response
+                const tagMatch = rawResponse.match(/^\[(RELEVANT|PARTIAL|OFF_TOPIC|EMPTY)\]\s*/i);
+                if (tagMatch) {
+                    relevanceTag = tagMatch[1].toUpperCase();
+                    nextQuestion = rawResponse.substring(tagMatch[0].length).trim();
+                    logger.info(`Answer relevance: [${relevanceTag}] for session ${sessionId}`);
+                } else {
+                    nextQuestion = rawResponse.trim();
+                }
+
+                // Store the relevance tag on the last user transcript entry
+                if (relevanceTag && session.transcript.length > 0) {
+                    const lastUserIdx = session.transcript.map(t => t.role).lastIndexOf("user");
+                    if (lastUserIdx !== -1) {
+                        session.transcript[lastUserIdx].relevanceTag = relevanceTag;
+                        session.markModified("transcript");
+                    }
+                }
+            } catch (aiError) {
+                logger.error(`AI question generation failed, using fallback: ${aiError.message}`);
+                nextQuestion = "Can you tell me more about your experience with the technologies you've worked with and how you've applied them in real projects?";
+            }
 
             session.questions.push({ question: nextQuestion });
             session.transcript.push({ role: "assistant", content: nextQuestion });

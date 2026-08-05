@@ -49,6 +49,10 @@ const Interview = () => {
     const [stopMicRequested, setStopMicRequested] = useState(false);
 
     const [questionCount, setQuestionCount] = useState(0);
+    const [questionTimedOut, setQuestionTimedOut] = useState(false);
+    const questionTimeoutRef = useRef(null);
+    const lastAnswerRef = useRef(null);
+    const ttsInterruptedRef = useRef(null); // stores text if TTS was interrupted
     const socketRef = useRef(null);
     const sessionIdRef = useRef(null);
 
@@ -191,11 +195,13 @@ const Interview = () => {
         const cleanup = () => {
             if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
             if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
+            ttsInterruptedRef.current = null; // normal finish — clear interrupted tracker
             setIsSpeaking(false);
         };
 
         utterance.onstart = () => {
             console.log("[TTS] Started speaking");
+            ttsInterruptedRef.current = text; // track current text for recovery
             ttsResumeIntervalRef.current = setInterval(() => {
                 if (window.speechSynthesis.speaking) {
                     window.speechSynthesis.pause();
@@ -211,7 +217,16 @@ const Interview = () => {
 
         utterance.onerror = (e) => {
             console.warn("[TTS] Error:", e.error);
-            cleanup();
+            // If cancelled externally (volume button, app switch), keep the text for recovery
+            if (e.error === "interrupted" || e.error === "canceled") {
+                console.log("[TTS] External interruption detected — keeping text for recovery");
+                // Don't clear ttsInterruptedRef — visibilitychange handler will re-speak
+                if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
+                if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
+                setIsSpeaking(false);
+            } else {
+                cleanup();
+            }
         };
 
         setIsSpeaking(true);
@@ -246,6 +261,8 @@ const Interview = () => {
         newSocket.on("interview:question", (data) => {
             setIsProcessingAnswer(false);
             setStopMicRequested(false);
+            setQuestionTimedOut(false);
+            if (questionTimeoutRef.current) { clearTimeout(questionTimeoutRef.current); questionTimeoutRef.current = null; }
 
             if (data.resumed && data.transcript) {
                 setTranscript(data.transcript);
@@ -281,10 +298,26 @@ const Interview = () => {
 
         setSocket(newSocket);
 
+        // TTS recovery: if user switches apps or adjusts volume, TTS can get killed
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible" && ttsInterruptedRef.current) {
+                console.log("[TTS] Page became visible, re-speaking interrupted question");
+                setTimeout(() => {
+                    if (ttsInterruptedRef.current && !window.speechSynthesis.speaking) {
+                        speakQuestion(ttsInterruptedRef.current);
+                    }
+                    ttsInterruptedRef.current = null;
+                }, 500);
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
         return () => {
             window.speechSynthesis?.cancel();
             if (ttsTimerRef.current) clearTimeout(ttsTimerRef.current);
             if (ttsResumeIntervalRef.current) clearInterval(ttsResumeIntervalRef.current);
+            if (questionTimeoutRef.current) clearTimeout(questionTimeoutRef.current);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
             newSocket.disconnect();
         };
     }, [token, navigate, speakQuestion]);
@@ -370,10 +403,33 @@ const Interview = () => {
             console.log("[Interview] Submitting answer...", finalAnswer.substring(0, 30));
             setTranscript((prev) => [...prev, { role: "user", content: finalAnswer }]);
             setIsProcessingAnswer(true);
+            setQuestionTimedOut(false);
+            lastAnswerRef.current = { sessionId: sessionIdRef.current, answer: finalAnswer };
             socketRef.current.emit("interview:answer", { sessionId: sessionIdRef.current, answer: finalAnswer });
+
+            // 30-second timeout: if no question comes back, show retry
+            if (questionTimeoutRef.current) clearTimeout(questionTimeoutRef.current);
+            questionTimeoutRef.current = setTimeout(() => {
+                console.warn("[Interview] Question timeout — no response in 30s");
+                setQuestionTimedOut(true);
+                setIsProcessingAnswer(false);
+            }, 30000);
         },
         []
     );
+
+    const retryLastAnswer = useCallback(() => {
+        if (!socketRef.current || !lastAnswerRef.current) return;
+        console.log("[Interview] Retrying last answer...");
+        setIsProcessingAnswer(true);
+        setQuestionTimedOut(false);
+        socketRef.current.emit("interview:answer", lastAnswerRef.current);
+        if (questionTimeoutRef.current) clearTimeout(questionTimeoutRef.current);
+        questionTimeoutRef.current = setTimeout(() => {
+            setQuestionTimedOut(true);
+            setIsProcessingAnswer(false);
+        }, 30000);
+    }, []);
 
     // ── Camera / Gesture analysis ──────────────────────────────────
     const { isReady: isGestureReady, liveMetrics, startAnalysis, stopAnalysis, getAverageMetrics, reset: resetGesture } = useGestureAnalysis();
@@ -734,46 +790,61 @@ const Interview = () => {
     // ── render: interview session ──────────────────────────────────
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)]">
-            {/* Header bar */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3 glass-panel rounded-none border-x-0 border-t-0 relative overflow-hidden">
+            {/* Header bar — mobile-friendly with flex-wrap */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-3 glass-panel rounded-none border-x-0 border-t-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-50/30 via-transparent to-primary-50/30" />
 
-                <div className="flex items-center space-x-4 min-w-0 relative z-10">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-lg shadow-primary-500/20 flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 relative z-10">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-lg shadow-primary-500/20 flex-shrink-0">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                     </div>
                     <div className="min-w-0">
-                        <h2 className="text-sm font-bold text-surface-900 truncate">{config.role}</h2>
-                        <p className="text-xs text-surface-500 truncate">
-                            {config.domain} · {config.specialization} · {config.difficulty}
+                        <h2 className="text-xs sm:text-sm font-bold text-surface-900 truncate max-w-[120px] sm:max-w-none">{config.role}</h2>
+                        <p className="text-[10px] sm:text-xs text-surface-500 truncate max-w-[120px] sm:max-w-none">
+                            {config.domain} · {config.difficulty}
                         </p>
                     </div>
+                </div>
+
+                {/* Status badges + question counter */}
+                <div className="flex items-center gap-1.5 sm:gap-2 relative z-10 flex-shrink-0">
+                    {/* Question counter */}
+                    <span className="text-[10px] sm:text-xs font-bold text-surface-500 bg-surface-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+                        Q{questionCount}
+                    </span>
 
                     {isSpeaking && (
-                        <span className="status-badge status-badge-speaking ml-2">
+                        <span className="status-badge status-badge-speaking text-[10px] sm:text-xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            Nexa Speaking
+                            <span className="hidden sm:inline">Nexa</span> Speaking
                         </span>
                     )}
                     {!isSpeaking && isRecording && (
-                        <span className="status-badge status-badge-recording ml-2">
+                        <span className="status-badge status-badge-recording text-[10px] sm:text-xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            Recording
+                            <span className="hidden sm:inline">Recording</span>
+                            <span className="sm:hidden">Rec</span>
                         </span>
                     )}
                     {!isSpeaking && !isRecording && isProcessingAnswer && (
-                        <span className="status-badge status-badge-evaluating ml-2">
+                        <span className="status-badge status-badge-evaluating text-[10px] sm:text-xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            Evaluating
+                            Thinking…
                         </span>
                     )}
-                    {!isSpeaking && !isRecording && !isProcessingAnswer && (
-                        <span className="status-badge status-badge-ready ml-2">
+                    {!isSpeaking && !isRecording && !isProcessingAnswer && !questionTimedOut && (
+                        <span className="status-badge status-badge-ready text-[10px] sm:text-xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             Ready
+                        </span>
+                    )}
+                    {questionTimedOut && (
+                        <span className="status-badge bg-orange-100 text-orange-700 border-orange-200 text-[10px] sm:text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            Timed Out
                         </span>
                     )}
                 </div>
@@ -781,20 +852,22 @@ const Interview = () => {
                 <button
                     onClick={handleEnd}
                     disabled={isEnding || isProcessingAnswer}
-                    className="btn-danger text-sm py-2 px-4 flex items-center space-x-2 relative z-10"
+                    className="btn-danger text-xs sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4 flex items-center space-x-1.5 sm:space-x-2 relative z-10"
                 >
                     {isEnding ? (
                         <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>{t("interview.ending")}</span>
+                            <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span className="hidden sm:inline">{t("interview.ending")}</span>
+                            <span className="sm:hidden">Ending</span>
                         </>
                     ) : (
                         <>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                             </svg>
-                            <span>{t("interview.end")}</span>
+                            <span className="hidden sm:inline">{t("interview.end")}</span>
+                            <span className="sm:hidden">End</span>
                         </>
                     )}
                 </button>
@@ -819,8 +892,20 @@ const Interview = () => {
                 )}
             </div>
 
-            {/* Voice input */}
-            <div className="p-4">
+            {/* Voice input + Retry button */}
+            <div className="p-2 sm:p-4">
+                {questionTimedOut && (
+                    <div className="mb-2 flex items-center justify-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
+                        <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                        <p className="text-xs text-orange-700 dark:text-orange-400">AI didn't respond in time.</p>
+                        <button
+                            onClick={retryLastAnswer}
+                            className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
                 <VoiceAnswerInput
                     key={questionCount}
                     onSubmit={handleAnswer}
