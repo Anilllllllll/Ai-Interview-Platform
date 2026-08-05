@@ -53,6 +53,8 @@ const Interview = () => {
     const questionTimeoutRef = useRef(null);
     const lastAnswerRef = useRef(null);
     const ttsInterruptedRef = useRef(null); // stores text if TTS was interrupted
+    const isSpeakingRef = useRef(false);     // ref mirror of isSpeaking for watchdog
+    const ttsWatchdogRef = useRef(null);     // polling watchdog for volume-button mute
     const socketRef = useRef(null);
     const sessionIdRef = useRef(null);
 
@@ -193,6 +195,7 @@ const Interview = () => {
             if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
             if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
             ttsInterruptedRef.current = null;
+            isSpeakingRef.current = false;
             setIsSpeaking(false);
         };
 
@@ -232,6 +235,7 @@ const Interview = () => {
                     ttsInterruptedRef.current = remainingText;
                     if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
                     if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
+                    isSpeakingRef.current = false;
                     setIsSpeaking(false);
                 } else {
                     // Skip this chunk and try next
@@ -243,6 +247,7 @@ const Interview = () => {
             window.speechSynthesis.speak(utterance);
         };
 
+        isSpeakingRef.current = true;
         setIsSpeaking(true);
         ttsInterruptedRef.current = text;
 
@@ -325,12 +330,33 @@ const Interview = () => {
 
         setSocket(newSocket);
 
-        // TTS recovery: if user switches apps or adjusts volume, TTS can get killed
+        // TTS WATCHDOG: Polls every 2s to detect if TTS was silently killed
+        // (e.g., volume button press on mobile doesn't trigger any event)
+        ttsWatchdogRef.current = setInterval(() => {
+            if (isSpeakingRef.current && ttsInterruptedRef.current) {
+                // We think we're speaking but check if speechSynthesis agrees
+                if (!window.speechSynthesis?.speaking && !window.speechSynthesis?.pending) {
+                    console.warn("[TTS Watchdog] Detected silent TTS death, re-speaking...");
+                    const textToRespeak = ttsInterruptedRef.current;
+                    // Reset state so speakQuestion can work
+                    ttsInterruptedRef.current = null;
+                    isSpeakingRef.current = false;
+                    // Small delay then re-speak
+                    setTimeout(() => {
+                        if (textToRespeak && !window.speechSynthesis?.speaking) {
+                            speakQuestion(textToRespeak);
+                        }
+                    }, 500);
+                }
+            }
+        }, 2000);
+
+        // Visibility change recovery (for app-switch scenarios)
         const handleVisibilityChange = () => {
             if (document.visibilityState === "visible" && ttsInterruptedRef.current) {
-                console.log("[TTS] Page became visible, re-speaking interrupted question");
+                console.log("[TTS] Page became visible, checking TTS state...");
                 setTimeout(() => {
-                    if (ttsInterruptedRef.current && !window.speechSynthesis.speaking) {
+                    if (ttsInterruptedRef.current && !window.speechSynthesis?.speaking) {
                         speakQuestion(ttsInterruptedRef.current);
                     }
                     ttsInterruptedRef.current = null;
@@ -344,6 +370,7 @@ const Interview = () => {
             if (ttsTimerRef.current) clearTimeout(ttsTimerRef.current);
             if (ttsResumeIntervalRef.current) clearInterval(ttsResumeIntervalRef.current);
             if (questionTimeoutRef.current) clearTimeout(questionTimeoutRef.current);
+            if (ttsWatchdogRef.current) clearInterval(ttsWatchdogRef.current);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             newSocket.disconnect();
         };
