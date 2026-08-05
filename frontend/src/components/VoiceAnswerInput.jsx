@@ -25,8 +25,12 @@ const VoiceAnswerInput = ({
     const hasSubmittedRef = useRef(false);
     const autoStartTimerRef = useRef(null);
     const disabledRef = useRef(disabled);
+    const restartCountRef = useRef(0); // track restart attempts to prevent infinite loops
+    const [showTypeFallback, setShowTypeFallback] = useState(false);
+    const [typedAnswer, setTypedAnswer] = useState("");
 
-    const SILENCE_TIMEOUT = 5000;
+    const SILENCE_TIMEOUT = 10000;  // 10 seconds — was 5s which was too aggressive
+    const MAX_RESTARTS = 5;         // max auto-restart attempts before showing fallback
 
     useEffect(() => { statusRef.current = status; }, [status]);
     useEffect(() => { disabledRef.current = disabled; }, [disabled]);
@@ -107,6 +111,8 @@ const VoiceAnswerInput = ({
         setDisplayInterim("");
         isStoppingRef.current = false;
         hasSubmittedRef.current = false;
+        restartCountRef.current = 0;
+        setShowTypeFallback(false);
 
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
@@ -143,7 +149,7 @@ const VoiceAnswerInput = ({
             if (event.error === "aborted" || isStoppingRef.current) return;
             
             // Handle common temporary glitches without crashing the UI
-            if (event.error === "no-speech" || event.error === "network") {
+            if (event.error === "no-speech" || event.error === "network" || event.error === "audio-capture") {
                 console.log("[Voice] Non-fatal error, will restart in onend...");
                 return; 
             }
@@ -153,11 +159,12 @@ const VoiceAnswerInput = ({
                 setError("Microphone access denied. Please allow mic access and reload.");
                 setStatus("idle");
                 onRecordingChange?.(false);
+                setShowTypeFallback(true);
             }
         };
 
         recognition.onend = () => {
-            console.log("[Voice] Recognition ended, isStopping:", isStoppingRef.current, "status:", statusRef.current);
+            console.log("[Voice] Recognition ended, isStopping:", isStoppingRef.current, "status:", statusRef.current, "restarts:", restartCountRef.current);
             
             // Save any finalized text from this session before restarting
             if (finalTranscriptRef.current) {
@@ -165,24 +172,40 @@ const VoiceAnswerInput = ({
                 finalTranscriptRef.current = "";
             }
 
-            // AUTO-RESTART logic: if we are supposed to be listening, fire it back up
+            // AUTO-RESTART logic with retry limit
             if (!isStoppingRef.current && statusRef.current === "listening") {
-                console.log("[Voice] Restarting recognition engine for continuity...");
-                try { 
-                    recognitionRef.current = new SpeechRecognition();
-                    // Copy settings and re-attach handlers
-                    recognitionRef.current.continuous = true;
-                    recognitionRef.current.interimResults = true;
-                    recognitionRef.current.lang = "en-IN";
-                    recognitionRef.current.onstart = recognition.onstart;
-                    recognitionRef.current.onresult = recognition.onresult;
-                    recognitionRef.current.onerror = recognition.onerror;
-                    recognitionRef.current.onend = recognition.onend;
-                    recognitionRef.current.start(); 
-                    return; 
-                } catch (e) {
-                    console.error("[Voice] Restart failed:", e.message);
+                restartCountRef.current += 1;
+                
+                if (restartCountRef.current > MAX_RESTARTS) {
+                    console.warn("[Voice] Max restarts reached, showing type fallback");
+                    setStatus("idle");
+                    onRecordingChange?.(false);
+                    setShowTypeFallback(true);
+                    return;
                 }
+
+                console.log(`[Voice] Restarting recognition (attempt ${restartCountRef.current}/${MAX_RESTARTS})...`);
+                // Delay restart slightly — mobile browsers need a gap
+                setTimeout(() => {
+                    if (isStoppingRef.current || statusRef.current !== "listening") return;
+                    try { 
+                        recognitionRef.current = new SpeechRecognition();
+                        recognitionRef.current.continuous = true;
+                        recognitionRef.current.interimResults = true;
+                        recognitionRef.current.lang = "en-IN";
+                        recognitionRef.current.onstart = recognition.onstart;
+                        recognitionRef.current.onresult = recognition.onresult;
+                        recognitionRef.current.onerror = recognition.onerror;
+                        recognitionRef.current.onend = recognition.onend;
+                        recognitionRef.current.start();
+                    } catch (e) {
+                        console.error("[Voice] Restart failed:", e.message);
+                        setStatus("idle");
+                        onRecordingChange?.(false);
+                        setShowTypeFallback(true);
+                    }
+                }, 300);
+                return;
             }
 
             if (statusRef.current !== "processing") {
@@ -379,7 +402,7 @@ const VoiceAnswerInput = ({
 
                 {/* Live transcript */}
                 {fullTranscript && (
-                    <div className="w-full transcript-box p-4 mt-2">
+                    <div className="w-full transcript-box p-3 sm:p-4 mt-2">
                         <div className="flex items-center space-x-2 mb-2">
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center">
                                 <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -397,6 +420,43 @@ const VoiceAnswerInput = ({
                                 <span className="text-surface-400 italic"> {displayInterim}</span>
                             )}
                         </p>
+                    </div>
+                )}
+
+                {/* Manual type fallback — when STT keeps failing */}
+                {showTypeFallback && status !== "processing" && (
+                    <div className="w-full mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mb-2 font-medium">Voice not working? Type your answer instead:</p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={typedAnswer}
+                                onChange={(e) => setTypedAnswer(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && typedAnswer.trim()) {
+                                        onSubmit(typedAnswer.trim());
+                                        setTypedAnswer("");
+                                        setShowTypeFallback(false);
+                                    }
+                                }}
+                                placeholder="Type your answer here…"
+                                className="flex-1 px-3 py-2 text-sm rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-surface-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                                disabled={disabled}
+                            />
+                            <button
+                                onClick={() => {
+                                    if (typedAnswer.trim()) {
+                                        onSubmit(typedAnswer.trim());
+                                        setTypedAnswer("");
+                                        setShowTypeFallback(false);
+                                    }
+                                }}
+                                disabled={disabled || !typedAnswer.trim()}
+                                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                            >
+                                Send
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

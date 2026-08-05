@@ -151,88 +151,113 @@ const Interview = () => {
         }
         window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "en-US";
-        utterance.rate = 0.92;
-        utterance.pitch = 1.05;
-        utterance.volume = 1;
-
-        // Select the best available voice for a natural interview feel
-        // Priority: Google voices > Microsoft voices > default
+        // Select voice once
         const voices = window.speechSynthesis.getVoices();
         const preferredVoices = [
-            // Natural-sounding voices (ranked by quality)
-            "Google UK English Female",
-            "Google UK English Male",
-            "Google US English",
-            "Microsoft Zira",
-            "Microsoft David",
-            "Microsoft Mark",
-            "Samantha",           // macOS
-            "Karen",              // macOS Australian
-            "Daniel",             // macOS British
-            "Alex",               // macOS
+            "Google UK English Female", "Google UK English Male", "Google US English",
+            "Microsoft Zira", "Microsoft David", "Microsoft Mark",
+            "Samantha", "Karen", "Daniel", "Alex",
         ];
-
         let selectedVoice = null;
         for (const name of preferredVoices) {
             selectedVoice = voices.find(v => v.name.includes(name));
             if (selectedVoice) break;
         }
-
-        // Fallback: pick any English voice that isn't the default robotic one
         if (!selectedVoice) {
-            selectedVoice = voices.find(v =>
-                v.lang.startsWith("en") && !v.localService
-            ) || voices.find(v => v.lang.startsWith("en"));
+            selectedVoice = voices.find(v => v.lang.startsWith("en") && !v.localService) || voices.find(v => v.lang.startsWith("en"));
         }
 
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-            console.log("[TTS] Using voice:", selectedVoice.name);
-        }
+        // Split long text into sentences to avoid Chrome's buffer limit (~300 chars)
+        // Chrome kills TTS silently on long utterances
+        const splitIntoChunks = (str) => {
+            const sentences = str.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [str];
+            const chunks = [];
+            let current = "";
+            for (const sentence of sentences) {
+                if ((current + sentence).length > 250) {
+                    if (current.trim()) chunks.push(current.trim());
+                    current = sentence;
+                } else {
+                    current += sentence;
+                }
+            }
+            if (current.trim()) chunks.push(current.trim());
+            return chunks.length > 0 ? chunks : [str];
+        };
+
+        const chunks = splitIntoChunks(text);
+        let chunkIndex = 0;
+        let speaking = false;
 
         const cleanup = () => {
             if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
             if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
-            ttsInterruptedRef.current = null; // normal finish — clear interrupted tracker
+            ttsInterruptedRef.current = null;
             setIsSpeaking(false);
         };
 
-        utterance.onstart = () => {
-            console.log("[TTS] Started speaking");
-            ttsInterruptedRef.current = text; // track current text for recovery
-            ttsResumeIntervalRef.current = setInterval(() => {
-                if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.pause();
-                    window.speechSynthesis.resume();
-                }
-            }, 10000);
-        };
-
-        utterance.onend = () => {
-            console.log("[TTS] Finished speaking");
-            cleanup();
-        };
-
-        utterance.onerror = (e) => {
-            console.warn("[TTS] Error:", e.error);
-            // If cancelled externally (volume button, app switch), keep the text for recovery
-            if (e.error === "interrupted" || e.error === "canceled") {
-                console.log("[TTS] External interruption detected — keeping text for recovery");
-                // Don't clear ttsInterruptedRef — visibilitychange handler will re-speak
-                if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
-                if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
-                setIsSpeaking(false);
-            } else {
+        const speakNextChunk = () => {
+            if (chunkIndex >= chunks.length) {
+                console.log("[TTS] All chunks finished");
                 cleanup();
+                return;
             }
+
+            const chunkText = chunks[chunkIndex];
+            const utterance = new SpeechSynthesisUtterance(chunkText);
+            utterance.lang = "en-US";
+            utterance.rate = 0.95;
+            utterance.pitch = 1.05;
+            utterance.volume = 1;
+            if (selectedVoice) utterance.voice = selectedVoice;
+
+            utterance.onstart = () => {
+                speaking = true;
+                console.log(`[TTS] Speaking chunk ${chunkIndex + 1}/${chunks.length}`);
+            };
+
+            utterance.onend = () => {
+                speaking = false;
+                chunkIndex++;
+                // Small gap between sentences for natural feel
+                setTimeout(speakNextChunk, 100);
+            };
+
+            utterance.onerror = (e) => {
+                speaking = false;
+                console.warn("[TTS] Chunk error:", e.error);
+                if (e.error === "interrupted" || e.error === "canceled") {
+                    // External interruption — save remaining text for recovery
+                    const remainingText = chunks.slice(chunkIndex).join(" ");
+                    ttsInterruptedRef.current = remainingText;
+                    if (ttsTimerRef.current) { clearTimeout(ttsTimerRef.current); ttsTimerRef.current = null; }
+                    if (ttsResumeIntervalRef.current) { clearInterval(ttsResumeIntervalRef.current); ttsResumeIntervalRef.current = null; }
+                    setIsSpeaking(false);
+                } else {
+                    // Skip this chunk and try next
+                    chunkIndex++;
+                    setTimeout(speakNextChunk, 200);
+                }
+            };
+
+            window.speechSynthesis.speak(utterance);
         };
 
         setIsSpeaking(true);
-        window.speechSynthesis.speak(utterance);
+        ttsInterruptedRef.current = text;
 
-        const estimatedMs = Math.max(text.length * 80, 5000) + 3000;
+        // Chrome pause/resume workaround — every 5s (Chrome auto-pauses at ~15s)
+        ttsResumeIntervalRef.current = setInterval(() => {
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+                window.speechSynthesis.pause();
+                window.speechSynthesis.resume();
+            } else if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+        }, 5000);
+
+        // Safety timeout — generous: ~120ms per char + 10s buffer
+        const estimatedMs = Math.max(text.length * 120, 8000) + 10000;
         ttsTimerRef.current = setTimeout(() => {
             if (window.speechSynthesis.speaking) {
                 console.warn("[TTS] Safety timeout — cancelling stuck TTS");
@@ -240,6 +265,8 @@ const Interview = () => {
             }
             cleanup();
         }, estimatedMs);
+
+        speakNextChunk();
     }, []);
 
     // ── Socket.IO setup ────────────────────────────────────────────
