@@ -35,6 +35,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ai-interview-api
+    # CloudWatch Logs — sends all container output to AWS CloudWatch
+    # Every logger.info(), logger.error(), console.log() goes here
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-south-1            # Mumbai region (same as your EC2)
+        awslogs-group: /ai-interview/api       # Log group name in CloudWatch
+        awslogs-stream-prefix: api             # Prefix for log streams
+        awslogs-create-group: "true"           # Auto-create the log group
     env_file:
       - ./backend/.env.docker
     depends_on:
@@ -65,6 +74,14 @@ services:
   nginx:
     image: nginx:alpine
     container_name: ai-interview-nginx
+    # CloudWatch Logs — captures Nginx access & error logs
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-south-1
+        awslogs-group: /ai-interview/nginx
+        awslogs-stream-prefix: nginx
+        awslogs-create-group: "true"
     ports:
       # Port 80: HTTP (redirects to HTTPS)
       - "80:80"
