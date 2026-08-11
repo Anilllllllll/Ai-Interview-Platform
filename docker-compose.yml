@@ -47,16 +47,6 @@ services:
     # ports:
     #   - "5000:5000"
 
-    # CloudWatch Logs — sends all container output to AWS CloudWatch
-    # Comment out this block if running locally without AWS credentials
-    logging:
-      driver: awslogs
-      options:
-        awslogs-region: ap-south-1
-        awslogs-group: /ai-interview/api
-        awslogs-stream-prefix: api
-        awslogs-create-group: "true"
-
     env_file:
       - ./backend/.env.docker
     depends_on:
