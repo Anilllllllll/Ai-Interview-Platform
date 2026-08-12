@@ -172,6 +172,7 @@ root/
 **Frontend:** Vercel
 **Backend:** Render / Railway
 **Database:** MongoDB Atlas
+**for visit** nexa interview.space
 
 Build frontend:
 
