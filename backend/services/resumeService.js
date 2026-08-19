@@ -10,7 +10,7 @@ const openai = new OpenAI({
     baseURL: "https://api.groq.com/openai/v1",
 });
 
-const ANALYSIS_MODEL = "llama-3.3-70b-versatile";
+const ANALYSIS_MODEL = "qwen/qwen3.6-27b";
 
 /**
  * Extract plain text from a PDF or DOCX file.

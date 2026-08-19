@@ -10,7 +10,7 @@ const client = new OpenAI({
     baseURL: "https://api.groq.com/openai/v1",
 });
 
-const ATS_MODEL = "llama-3.3-70b-versatile";
+const ATS_MODEL = "qwen/qwen3.6-27b";
 
 const extractText = async (filePath, mimetype) => {
     const buffer = fs.readFileSync(filePath);

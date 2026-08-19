@@ -6,8 +6,8 @@ const openai = new OpenAI({
     baseURL: "https://api.groq.com/openai/v1",
 });
 
-const QUESTION_MODEL = "llama-3.3-70b-versatile";
-const FEEDBACK_MODEL = "llama-3.3-70b-versatile";
+const QUESTION_MODEL = "qwen/qwen3.6-27b";
+const FEEDBACK_MODEL = "qwen/qwen3.6-27b";
 const MAX_RETRIES = 3;
 const TRANSCRIPT_WINDOW = 20;
 
