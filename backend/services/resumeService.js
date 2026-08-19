@@ -104,6 +104,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
 
         const content = completion.choices[0].message.content;
         const cleaned = content
+            .replace(/<think>[\s\S]*?<\/think>/gi, "")
             .replace(/```json\n?/g, "")
             .replace(/```\n?/g, "")
             .trim();
