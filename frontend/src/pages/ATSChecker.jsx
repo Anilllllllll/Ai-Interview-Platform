@@ -67,6 +67,8 @@ const ATSChecker = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [jobDescription, setJobDescription] = useState("");
+    const [targetRole, setTargetRole] = useState("");
 
     const handleFile = (f) => {
         if (!f) return;
@@ -106,6 +108,8 @@ const ATSChecker = () => {
         try {
             const formData = new FormData();
             formData.append("resume", file);
+            if (jobDescription.trim()) formData.append("jobDescription", jobDescription.trim());
+            if (targetRole.trim()) formData.append("targetRole", targetRole.trim());
             const res = await atsAPI.analyze(formData);
             setResult(res.data.analysis);
         } catch (err) {
@@ -124,6 +128,8 @@ const ATSChecker = () => {
         setResult(null);
         setError(null);
         setShowModal(false);
+        setJobDescription("");
+        setTargetRole("");
     };
 
     const sectionLabels = {
@@ -194,6 +200,46 @@ const ATSChecker = () => {
                                 </motion.div>
                             )}
                         </AnimatePresence>
+
+                        {/* Job Description & Target Role Inputs */}
+                        {file && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-6 space-y-4 overflow-hidden">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-surface-700 dark:text-slate-300 mb-2">
+                                        <Target className="w-4 h-4 text-primary-500" />
+                                        Target Role
+                                        <span className="text-xs font-normal text-surface-400">(optional)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={targetRole}
+                                        onChange={(e) => setTargetRole(e.target.value)}
+                                        placeholder="e.g. Frontend Developer, Data Scientist, DevOps Engineer"
+                                        className="w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-slate-700 bg-surface-50 dark:bg-slate-800/60 text-surface-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all placeholder:text-surface-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-semibold text-surface-700 dark:text-slate-300 mb-2">
+                                        <FileSearch className="w-4 h-4 text-primary-500" />
+                                        Job Description
+                                        <span className="text-xs font-normal text-surface-400">(paste JD for accurate matching)</span>
+                                    </label>
+                                    <textarea
+                                        value={jobDescription}
+                                        onChange={(e) => setJobDescription(e.target.value)}
+                                        placeholder="Paste the job description here to get a personalized ATS score based on how well your resume matches this specific role..."
+                                        rows={4}
+                                        className="w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-slate-700 bg-surface-50 dark:bg-slate-800/60 text-surface-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all resize-none placeholder:text-surface-400"
+                                    />
+                                    {jobDescription.trim() && (
+                                        <p className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                            <CheckCircle className="w-3 h-3" />
+                                            JD provided — your score will be tailored to this role
+                                        </p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
 
                         <div className="mt-6 flex justify-center">
                             <motion.button whileHover={{ scale: file && !loading ? 1.03 : 1 }} whileTap={{ scale: file && !loading ? 0.97 : 1 }} onClick={analyze} disabled={!file || loading}
@@ -283,6 +329,37 @@ const ATSChecker = () => {
                                                     result.overallScore >= 60 ? "text-amber-600" : "text-red-600"
                                                 }`}>{result.overallScore}/100</span>
                                             </div>
+
+                                            {/* JD Match Badge — only when job description was provided */}
+                                            {result.analyzedAgainst && (
+                                                <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">JD Match</span>
+                                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{result.jdMatchScore ?? result.jdKeywordOverlap ?? "—"}%</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60">Analyzed for: {result.analyzedAgainst}</p>
+                                                    {result.jdMatchedKeywords?.length > 0 && (
+                                                        <div className="mt-2">
+                                                            <p className="text-[10px] font-semibold text-green-600 dark:text-green-400 mb-1">✓ Matched:</p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {result.jdMatchedKeywords.slice(0, 8).map((kw, i) => (
+                                                                    <span key={i} className="px-1.5 py-0.5 text-[9px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 rounded">{kw}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {result.jdMissingKeywords?.length > 0 && (
+                                                        <div className="mt-2">
+                                                            <p className="text-[10px] font-semibold text-red-500 dark:text-red-400 mb-1">✗ Missing:</p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {result.jdMissingKeywords.slice(0, 6).map((kw, i) => (
+                                                                    <span key={i} className="px-1.5 py-0.5 text-[9px] bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 rounded">{kw}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Detected Skills */}
                                             {result.topSkillsDetected?.length > 0 && (
