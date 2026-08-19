@@ -102,12 +102,19 @@ Return ONLY valid JSON (no markdown, no code blocks):
             max_tokens: 1500,   // More tokens for detailed analysis
         });
 
-        const content = completion.choices[0].message.content;
-        const cleaned = content
+        const content = completion.choices[0].message.content || "";
+        // Strip qwen's <think>...</think> reasoning blocks (handles unclosed tags too)
+        let cleaned = content
             .replace(/<think>[\s\S]*?<\/think>/gi, "")
+            .replace(/<think>[\s\S]*/gi, "")
             .replace(/```json\n?/g, "")
             .replace(/```\n?/g, "")
             .trim();
+        // If still not valid JSON, try extracting the first { ... } block
+        if (!cleaned.startsWith("{")) {
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            cleaned = jsonMatch ? jsonMatch[0] : "{}";
+        }
 
         return JSON.parse(cleaned);
     } catch (error) {

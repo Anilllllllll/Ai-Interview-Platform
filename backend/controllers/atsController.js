@@ -254,11 +254,17 @@ Return ONLY a valid JSON object (no markdown, no code blocks):
         });
 
         const raw = response.choices[0]?.message?.content?.trim() || "{}";
-        // Strip qwen's <think>...</think> reasoning blocks before parsing
-        const cleaned = raw
+        // Strip qwen's <think>...</think> reasoning blocks (handles unclosed tags too)
+        let cleaned = raw
             .replace(/<think>[\s\S]*?<\/think>/gi, "")
+            .replace(/<think>[\s\S]*/gi, "")
             .replace(/^```json|^```|```$/gm, "")
             .trim();
+        // If still not valid JSON, try extracting the first { ... } block
+        if (!cleaned.startsWith("{")) {
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            cleaned = jsonMatch ? jsonMatch[0] : "{}";
+        }
         const result = JSON.parse(cleaned);
 
         // Flatten categories for backward compatibility with frontend

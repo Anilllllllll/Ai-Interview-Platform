@@ -93,9 +93,12 @@ const callOpenAIWithRetry = async (modelName, systemPrompt, history, userMessage
 
             const completion = await openai.chat.completions.create(params);
 
-            const raw = completion.choices[0].message.content;
-            // Strip qwen's <think>...</think> reasoning blocks
-            return raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+            const raw = completion.choices[0].message.content || "";
+            // Strip qwen's <think>...</think> reasoning blocks (handles unclosed tags too)
+            const stripped = raw.replace(/<think>[\s\S]*?<\/think>/gi, "")
+                                .replace(/<think>[\s\S]*/gi, "")
+                                .trim();
+            return stripped;
         } catch (error) {
             logger.error(
                 `OpenAI API attempt ${attempt}/${retries} failed: ${error.message}`
